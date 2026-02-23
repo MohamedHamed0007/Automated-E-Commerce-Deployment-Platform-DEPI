@@ -7,7 +7,7 @@ Deploy a multi-service e-commerce platform (web, database, payment, search) with
 - **Ahmed Reda Ragab**  
 - **Ahmed Gomaa Ahmed**  
 - **Mostafa Hazem Ahmed**  
-- **Abdulaziz Mohamed Abdulaziz Hussein**
+- **Sherif Saied Abdelraheem Ahmed**
 - **Abdullah Mohamed Ahmed**
 ---
 ##  Instructor
