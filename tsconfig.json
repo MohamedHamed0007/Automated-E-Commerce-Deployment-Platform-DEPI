@@ -4,6 +4,7 @@
     "paths": {
       "@/*": ["src/*"],
       "@types/*": ["src/types/*"],
+      "@utils/*": ["src/utils/*"],
       "@models/*": ["src/models/*"]
     },
     "rootDir": "./src",
