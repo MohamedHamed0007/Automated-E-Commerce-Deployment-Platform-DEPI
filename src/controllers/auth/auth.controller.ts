@@ -1,6 +1,6 @@
 import { successResponse } from '../../utils/Response/api.response.utils';
 import { RegisterData } from '@/types/user';
-import { loginUser, registerUser } from '../../Services/auth/auth.service';
+import { loginUser, refreshAccessToken, registerUser } from '../../Services/auth/auth.service';
 import { asyncHandler } from '../../utils/AsyncHandler/asyncHandler.utils';
 
 export const register = asyncHandler(async (req, res) => {
@@ -14,17 +14,17 @@ export const register = asyncHandler(async (req, res) => {
 export const login = asyncHandler(async (req, res) => {
   const { user, tokens } = await loginUser(req.body.email, req.body.password);
 
-  successResponse(res, 'Login successful', user, 200);
+  successResponse(res, 'Login successful', user, 200, tokens);
 });
 
-// export const refreshToken = asyncHandler(async (req, res) => {
-//   const refreshToken = req.headers.refreshtoken || req.cookies.refreshtoken;
+export const refreshToken = asyncHandler(async (req, res) => {
+  const refreshToken = req.headers.refreshtoken || req.cookies.refreshtoken;
 
-//   if (!refreshToken) {
-//     throw new Error('refresh token is required');
-//   }
+  if (!refreshToken) {
+    throw new Error('refresh token is required');
+  }
 
-//   const token = await refreshAccessToken(refreshToken);
+  const token = await refreshAccessToken(refreshToken);
 
-//   successResponse(res, 'Token refreshed successfully', { accessToken: token });
-// });
+  successResponse(res, 'Token refreshed successfully', { accessToken: token });
+});

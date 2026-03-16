@@ -3,14 +3,19 @@ import { Response } from 'express';
 export const successResponse = (
   res: Response,
   message: string,
-  data?: any,
-  statusCode: number = 200
+  data: any,
+  statusCode = 200,
+  extra?: any
 ) => {
-  return res.status(statusCode).json({
+  const response: any = {
     success: true,
     message,
     data
-  });
+  };
+
+  if (extra) Object.assign(response, extra);
+
+  return res.status(statusCode).json(response);
 };
 
 export const errorResponse = (res: Response, message: string, statusCode: number = 500) => {

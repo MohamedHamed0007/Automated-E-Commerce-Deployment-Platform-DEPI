@@ -44,21 +44,16 @@ export const registerUser = async (userData: RegisterData): Promise<IUserSafe> =
   const userObj = user.toObject();
   const { passwordHash: _, resetPasswordToken, refreshToken, ...safeUser } = userObj;
 
-  // Cast عبر unknown لتجنب خطأ TypeScript
   return safeUser as unknown as IUserSafe;
 };
 
 export const loginUser = async (email: string, password: string) => {
   const user = await User.findOne({ email }).select('+passwordHash');
 
-  if (!user) {
-    throw createUnauthorizedError('invalid email or the password');
-  }
+  if (!user) throw createUnauthorizedError('Invalid email or password');
 
   const isPasswordValid = await comparePassword(password, user.passwordHash);
-  if (!isPasswordValid) {
-    throw createUnauthorizedError('invalid email or the password');
-  }
+  if (!isPasswordValid) throw createUnauthorizedError('Invalid email or password');
 
   const access_token = generateAccessToken({
     userId: user._id.toString(),
@@ -72,20 +67,20 @@ export const loginUser = async (email: string, password: string) => {
     role: user.role
   });
 
+  // Save refresh token in DB
   user.refreshToken.push({
     token: refresh_token,
-    expireAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7)
+    expireAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7) // 7 days
   });
-
   user.lastLogin = new Date();
   await user.save();
 
-  // Create safe user (no password)
-  const { passwordHash, ...safeUser } = user.toObject();
+  // Remove sensitive info
+  const { passwordHash, refreshToken: _, ...safeUser } = user.toObject();
 
   return {
     user: safeUser,
-    tokens: { refresh_token, access_token }
+    tokens: { access_token, refresh_token }
   };
 };
 
