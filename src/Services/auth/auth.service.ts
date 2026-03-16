@@ -1,8 +1,17 @@
-import { createConflictError } from '@/utils/ApiErrors/ApiErrors';
 import { RegisterData, IUserSafe } from '../../types/user';
 import { User } from '../../config/DB/Models/User/user.models';
-import { hashPassword } from '@/utils/password.utils';
-import { sendWelcomeEmail } from '@/utils/email.utils';
+import {
+  createConflictError,
+  createNotFoundError,
+  createUnauthorizedError
+} from '../../utils/ApiErrors/ApiErrors';
+import { comparePassword, hashPassword } from '../../utils/PasswordUtils/password.utils';
+import { sendWelcomeEmail } from '../../utils/EmailUtils/email.utils';
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyToken
+} from '../../utils/Token/token.utils';
 
 export const registerUser = async (userData: RegisterData): Promise<IUserSafe> => {
   const email = userData.email.toLowerCase().trim();
@@ -26,20 +35,90 @@ export const registerUser = async (userData: RegisterData): Promise<IUserSafe> =
 
   // Send welcome email (non-blocking)
   try {
-    await sendWelcomeEmail({
-      fullName: user.fullName,
-      email: user.email,
-      _id: user._id,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-      role: user.role
-    });
+    await sendWelcomeEmail(user);
   } catch (error) {
     console.error('Welcome email failed:', error);
   }
 
-  // Return safe user
-  const safeUser = user.toObject() as IUserSafe;
-  delete safeUser.passwordHash;
-  return safeUser;
+  // Convert to object and remove sensitive fields
+  const userObj = user.toObject();
+  const { passwordHash: _, resetPasswordToken, refreshToken, ...safeUser } = userObj;
+
+  // Cast عبر unknown لتجنب خطأ TypeScript
+  return safeUser as unknown as IUserSafe;
+};
+
+export const loginUser = async (email: string, password: string) => {
+  const user = await User.findOne({ email }).select('+passwordHash');
+
+  if (!user) {
+    throw createUnauthorizedError('invalid email or the password');
+  }
+
+  const isPasswordValid = await comparePassword(password, user.passwordHash);
+  if (!isPasswordValid) {
+    throw createUnauthorizedError('invalid email or the password');
+  }
+
+  const access_token = generateAccessToken({
+    userId: user._id.toString(),
+    email: user.email,
+    role: user.role
+  });
+
+  const refresh_token = generateRefreshToken({
+    userId: user._id.toString(),
+    email: user.email,
+    role: user.role
+  });
+
+  user.refreshToken.push({
+    token: refresh_token,
+    expireAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7)
+  });
+
+  user.lastLogin = new Date();
+  await user.save();
+
+  // Create safe user (no password)
+  const { passwordHash, ...safeUser } = user.toObject();
+
+  return {
+    user: safeUser,
+    tokens: { refresh_token, access_token }
+  };
+};
+
+export const refreshAccessToken = async (refreshToken: string): Promise<string> => {
+  // 1. Decode refresh token
+  const decoded = verifyToken(refreshToken);
+  if (typeof decoded === 'string') throw createUnauthorizedError('Invalid token');
+
+  // 2. Get user by ID
+  const user = await User.findById(decoded.userId);
+
+  if (!user) {
+    throw createNotFoundError('User not found');
+  }
+
+  // 3. Find refresh token inside array
+  const storedToken = user.refreshToken.find((rt) => rt.token === refreshToken);
+
+  // 4. Validate token
+  if (!storedToken) {
+    throw createUnauthorizedError('Refresh token not found');
+  }
+
+  if (storedToken.expireAt < new Date()) {
+    throw createUnauthorizedError('Refresh token expired');
+  }
+
+  // 5. Issue fresh access token
+  const newAccessToken = generateAccessToken({
+    userId: user._id.toString(),
+    email: user.email,
+    role: user.role
+  });
+
+  return newAccessToken;
 };

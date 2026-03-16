@@ -1,4 +1,4 @@
-import { HTTP_STATUS } from '../Response/api.response.utils.js';
+import { HTTP_STATUS } from '../Response/api.response.utils';
 
 export class ApiError extends Error {
   public statusCode: number;

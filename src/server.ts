@@ -1,4 +1,4 @@
-import express, { Application, Request, Response } from "express";
+import express, { Application, Request, Response } from 'express';
 import bootstrap from './app';
 import { env } from './config/env/env';
 
@@ -8,8 +8,8 @@ const startServer = async () => {
 
   await bootstrap(app);
 
-  app.get("/", (req: Request, res: Response) => {
-    res.send("Server is running 🚀");
+  app.get('/', (req: Request, res: Response) => {
+    res.send('Server is running 🚀');
   });
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT} in ${env.NODE_ENV} mode`);
@@ -17,5 +17,5 @@ const startServer = async () => {
 };
 
 startServer().catch((err) => {
-  console.error("Failed to start server:", err);
+  console.error('Failed to start server:', err);
 });

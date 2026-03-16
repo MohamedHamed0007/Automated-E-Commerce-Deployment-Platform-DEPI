@@ -1,6 +1,6 @@
 import nodemailer, { Transporter, SendMailOptions, SentMessageInfo } from 'nodemailer';
-import { createInternalError } from '@/utils/ApiErrors/ApiErrors';
 import { IUserSafe } from '@/types/user';
+import { createInternalError } from '../ApiErrors/ApiErrors';
 
 let transporter: Transporter | null = null;
 

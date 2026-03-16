@@ -27,7 +27,16 @@ const userSchema = new Schema<IUser>(
     creditCardToken: {
       type: String,
       required: false
-    }
+    },
+    refreshToken: [
+      {
+        token: String,
+        expireAt: Date
+      }
+    ],
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
+    lastLogin: Date
   },
   {
     timestamps: true

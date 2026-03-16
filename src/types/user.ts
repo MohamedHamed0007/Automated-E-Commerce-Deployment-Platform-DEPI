@@ -8,6 +8,13 @@ export interface IUser extends Document {
   creditCardToken?: string;
   createdAt?: Date;
   updatedAt?: Date;
+  refreshToken: {
+    token: string;
+    expireAt: Date;
+  }[];
+  resetPasswordToken: String;
+  resetPasswordExpires: Date;
+  lastLogin: Date;
 }
 
 // Input type for registration
