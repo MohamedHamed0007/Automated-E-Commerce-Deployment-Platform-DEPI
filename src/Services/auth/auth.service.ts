@@ -6,12 +6,15 @@ import {
   createUnauthorizedError
 } from '../../utils/ApiErrors/ApiErrors';
 import { comparePassword, hashPassword } from '../../utils/PasswordUtils/password.utils';
-import { sendWelcomeEmail } from '../../utils/EmailUtils/email.utils';
+import { sendPasswordResetEmail, sendWelcomeEmail } from '../../utils/EmailUtils/email.utils';
 import {
+  decodeToken,
   generateAccessToken,
   generateRefreshToken,
+  generateResetToken,
   verifyToken
 } from '../../utils/Token/token.utils';
+import { encrypt } from '../../utils/Encrypt/encrypt.util';
 
 export const registerUser = async (userData: RegisterData): Promise<IUserSafe> => {
   const email = userData.email.toLowerCase().trim();
@@ -116,4 +119,73 @@ export const refreshAccessToken = async (refreshToken: string): Promise<string> 
   });
 
   return newAccessToken;
+};
+
+export const forgotPassword = async (email: string) => {
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    return { message: 'If an account with this email exists, a reset link has been sent.' };
+  }
+
+  const resetToken = generateResetToken({ userId: user._id.toString() });
+
+  user.resetPasswordToken = resetToken;
+
+  user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  await user.save();
+
+  try {
+    await sendPasswordResetEmail(
+      {
+        firstName: user.fullName,
+        email: user.email
+      },
+      resetToken
+    );
+    console.log('Reset token:', resetToken);
+  } catch (error) {
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+    throw error;
+  }
+
+  return { message: 'Password reset link has been sent to your email' };
+};
+
+export const resetPassword = async (token: string, newPassword: string) => {
+  const user = await User.findOne({
+    resetPasswordToken: token,
+    resetPasswordExpires: { $gt: new Date() }
+  });
+
+  if (!user) {
+    throw createUnauthorizedError('invalid or expired reset token');
+  }
+
+  const hashpassword = await hashPassword(newPassword);
+  user.passwordHash = hashpassword;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
+  user.refreshToken = [];
+  await user.save();
+
+  return {
+    _id: user._id,
+    email: user.email,
+    fullName: user.fullName,
+    role: user.role
+  };
+};
+
+export const logoutService = async (refreshToken: string | null | undefined) => {
+  if (!refreshToken) return;
+
+  const user = await User.findOne({ 'refreshToken.token': refreshToken });
+
+  if (user) {
+    user.refreshToken = user.refreshToken.filter((tokenObj) => tokenObj.token !== refreshToken);
+
+    await user.save();
+  }
 };
