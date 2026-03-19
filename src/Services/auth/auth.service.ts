@@ -27,7 +27,7 @@ export const registerUser = async (userData: RegisterData): Promise<IUserSafe> =
   const user = await User.create({
     fullName: userData.fullName,
     email,
-    role: userData.role || 'user',
+    role: userData.role || 'customer',
     passwordHash,
     createdAt: new Date(),
     updatedAt: new Date()

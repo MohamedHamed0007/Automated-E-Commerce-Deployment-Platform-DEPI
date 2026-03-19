@@ -1,5 +1,5 @@
 import express, { Application, Request, Response } from 'express';
-import authRouter from '../../routes/Auth/auth.routes';
+import authRouter from '../../routes/auth/auth.routes';
 import { env } from '../../config/env/env';
 
 const routerHandler = async (app: Application): Promise<void> => {

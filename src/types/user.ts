@@ -4,8 +4,10 @@ export interface IUser extends Document {
   fullName: string;
   email: string;
   passwordHash: string;
-  role: 'user' | 'admin';
+  role: 'admin' | 'customer' | 'driver';
   creditCardToken?: string;
+  isBlocked: boolean;
+  isVerified: boolean;
   createdAt?: Date;
   updatedAt?: Date;
   refreshToken: {
@@ -22,7 +24,7 @@ export interface RegisterData {
   fullName: string;
   email: string;
   password: string;
-  role?: 'user' | 'admin';
+  role?: 'admin' | 'customer' | 'driver';
 }
 
 // Safe version for returning to client

@@ -2,17 +2,40 @@
 node_modules/
 
 # environment variables
-.env.dev
+.env
+.env.*
 env/
 
 # build outputs
 dist/
 build/
+*.tsbuildinfo
 
 # logs
 logs/
 *.log
 
+# local runtime files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
 # OS-specific
 .DS_Store
 Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Vite static
+.vite/
+
+# generated
+out/
+
