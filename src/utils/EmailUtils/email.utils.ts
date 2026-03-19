@@ -1,6 +1,7 @@
 import nodemailer, { Transporter, SendMailOptions, SentMessageInfo } from 'nodemailer';
 import { IUserSafe } from '@/types/user';
 import { createInternalError } from '../ApiErrors/ApiErrors';
+import { env } from '../../config/env/env';
 
 let transporter: Transporter | null = null;
 
@@ -52,4 +53,43 @@ export const sendWelcomeEmail = async (user: IUserSafe): Promise<SentMessageInfo
   `;
 
   return sendEmail({ to: user.email, subject, html });
+};
+
+interface PasswordResetEmailParams {
+  firstName: string;
+  email: string;
+}
+
+export const sendPasswordResetEmail = async (
+  user: PasswordResetEmailParams,
+  resetToken: string
+): Promise<SentMessageInfo> => {
+  const resetURL = `${env.FRONTEND_URL}/auth/reset-password/${resetToken}`;
+  const subject = 'Password Reset Request';
+  const html = `
+    <h1>Password Reset</h1>
+    <p>Hi${user.firstName},</p>
+    <p>You requested a password reset. Click the link below to reset your password:</p>
+    <a href="${resetURL}">Reset Password</a>
+    <p>This link will expire in 10 minutes.</p>
+    <p>If you didn't request this, please ignore this email.</p>
+  `;
+
+  return sendEmail({
+    to: user.email,
+    subject,
+    html
+  });
+};
+
+export const verifyEmailTransporter = async () => {
+  try {
+    if (!transporter) initializeEmailTransporter();
+    if (!transporter) throw new Error('Email transporter initialization failed');
+    await transporter.verify();
+
+    return true;
+  } catch (error) {
+    return false;
+  }
 };
