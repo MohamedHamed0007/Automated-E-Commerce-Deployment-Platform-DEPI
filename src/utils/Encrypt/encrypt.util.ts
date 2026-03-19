@@ -1,17 +1,16 @@
 import CryptoJS from 'crypto-js';
 import { env } from '../../config/env/env';
 
+const SECRET = env.JWT?.SECRET || env.JWT_SECRET;
+if (!SECRET) {
+  throw new Error('JWT secret is not defined');
+}
+
 export const encrypt = (text: string) => {
-  if (!env.JWT.SECRET) {
-    throw new Error('JWT secret is not defined');
-  }
-  return CryptoJS.AES.encrypt(text, env.JWT.SECRET).toString();
+  return CryptoJS.AES.encrypt(text, SECRET).toString();
 };
 
 export const decrypt = (chiphertext: string) => {
-  if (!env.JWT.SECRET) {
-    throw new Error('JWT secret is not defined');
-  }
-  const bytes = CryptoJS.AES.decrypt(chiphertext, env.JWT.SECRET);
+  const bytes = CryptoJS.AES.decrypt(chiphertext, SECRET);
   return bytes.toString(CryptoJS.enc.Utf8);
 };

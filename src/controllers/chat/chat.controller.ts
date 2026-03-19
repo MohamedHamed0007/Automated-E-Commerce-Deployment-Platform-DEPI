@@ -8,7 +8,7 @@ import { asyncHandler } from '../../utils/AsyncHandler/asyncHandler.utils';
 export const createChat = asyncHandler(
   async (req: Request, res: Response, _next: NextFunction) => {
     const { adminId, shipmentRef } = req.body;
-    const userId = req.user!._id;
+     const userId = req.user!.userId;
 
     const chat = await chatService.createChat({ userId, adminId, shipmentRef });
 
@@ -19,7 +19,7 @@ export const createChat = asyncHandler(
 // ── GET /chatApi — list current user's chats ─────────────────────────────
 export const getMyChats = asyncHandler(
   async (req: Request, res: Response, _next: NextFunction) => {
-    const userId = req.user!._id;
+    const userId = req.user!.userId;
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 20;
 

@@ -42,7 +42,8 @@ export const authentication = asyncHandler(
     if (!token) {
       throw createUnauthorizedError('no token provided');
     }
-
+    console.log("TOKEN RECEIVED:", req.headers.authorization);
+console.log("COOKIE TOKEN:", req.cookies?.accessToken);
     const decoded = verifyToken(token); // type depends on verifyToken return type
 
     req.user = decoded;

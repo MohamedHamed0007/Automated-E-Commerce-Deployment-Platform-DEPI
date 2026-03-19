@@ -1,35 +1,9 @@
-<<<<<<< HEAD
-import { Request, Response, NextFunction } from 'express';
-import { ZodSchema, ZodError } from 'zod';
-import mongoose from 'mongoose';
 
-/**
- * Validates `req.body` against a Zod schema.
- * Returns 400 with structured error details on failure.
- */
-export const validateBody = (schema: ZodSchema) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    try {
-      schema.parse(req.body);
-      next();
-    } catch (err) {
-      if (err instanceof ZodError) {
-        const details = err.issues.map((e) => ({
-          field: e.path.join('.'),
-          message: e.message,
-        }));
-        res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          error: { code: 'VALIDATION_ERROR', details },
-        });
-        return;
-      }
-=======
 // src/middlewares/validationRequest.ts
 import { Request, Response, NextFunction } from 'express';
 import { Schema } from 'joi';
 import { createValidationError } from '../../utils/ApiErrors/ApiErrors';
+import mongoose from 'mongoose';
 
 // Extend Express Request to include: req.validated
 declare module 'express-serve-static-core' {
@@ -75,12 +49,10 @@ export const ValidationRequest = (schema: Schema) => {
 
       next();
     } catch (err) {
->>>>>>> f8a0c5d2581a370d18610aa676556799fc4a8a59
       next(err);
     }
   };
 };
-<<<<<<< HEAD
 
 /**
  * Validates that a URL param (e.g. `:id`, `:chatId`) is a valid MongoDB ObjectId.
@@ -99,5 +71,4 @@ export const validateObjectId = (paramName = 'id') => {
     next();
   };
 };
-=======
->>>>>>> f8a0c5d2581a370d18610aa676556799fc4a8a59
+

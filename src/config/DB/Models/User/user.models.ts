@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-=======
+
 import { Schema, model } from 'mongoose';
 import { IUser } from '@/types/user';
 
@@ -55,4 +54,3 @@ const userSchema = new Schema<IUser>(
 
 //  Create and export the Model
 export const User = model<IUser>('User', userSchema);
->>>>>>> f8a0c5d2581a370d18610aa676556799fc4a8a59

@@ -5,10 +5,9 @@ import cors from 'cors';
 import { connectDB } from './config/DB/connection';
 import { env } from './config/env/env';
 import './config/DB/Models';
-import chatRoutes from './routes/chat/chat.routes';
-import adminRoutes from './routes/admin/admin.routes';
+
 import { errorHandler } from './middleware/Error/error.middleware';
-import authRouter from './routes/auth/auth.routes';
+import routerHandler from './utils/RouterHandler/routerHandler';
 
 const bootstrap = async (app: express.Application): Promise<void> => {
   app.use(express.json());
@@ -21,11 +20,10 @@ const bootstrap = async (app: express.Application): Promise<void> => {
     })
   );
 
-
   await connectDB();
-  app.use('/chatApi', chatRoutes);
-  app.use('/admin', adminRoutes);
-  app.use('/auth', authRouter);
+
+  await routerHandler(app);
+ 
   app.use(errorHandler);
 };
 
