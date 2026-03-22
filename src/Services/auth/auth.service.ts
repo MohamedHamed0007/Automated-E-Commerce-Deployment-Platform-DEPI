@@ -1,5 +1,5 @@
-import { RegisterData, IUserSafe } from '../../types/user';
-import { User } from '../../config/DB/Models/User/user.models';
+import { RegisterData, IUserSafe } from '../../types/User/user.mongoose.types';
+import User from '../../config/DB/Models/User/user.models';
 import {
   createConflictError,
   createNotFoundError,
@@ -16,40 +16,37 @@ import {
 } from '../../utils/Token/token.utils';
 import { encrypt } from '../../utils/Encrypt/encrypt.util';
 
+// ========================= REGISTER =========================
 export const registerUser = async (userData: RegisterData): Promise<IUserSafe> => {
   const email = userData.email.toLowerCase().trim();
 
-  // Check if user exists
   const existUser = await User.findOne({ email });
   if (existUser) throw createConflictError('Email already exists');
 
-  // Hash password
   const passwordHash = await hashPassword(userData.password);
 
-  // Create user
   const user = await User.create({
     fullName: userData.fullName,
     email,
     role: userData.role || 'customer',
     passwordHash,
+    refreshTokens: [], 
     createdAt: new Date(),
     updatedAt: new Date()
   });
 
-  // Send welcome email (non-blocking)
   try {
     await sendWelcomeEmail(user);
   } catch (error) {
     console.error('Welcome email failed:', error);
   }
 
-  // Convert to object and remove sensitive fields
-  const userObj = user.toObject();
-  const { passwordHash: _, resetPasswordToken, refreshToken, ...safeUser } = userObj;
+  const { passwordHash: _, resetPasswordToken, refreshTokens, ...safeUser } = user.toObject();
 
   return safeUser as unknown as IUserSafe;
 };
 
+// ========================= LOGIN =========================
 export const loginUser = async (email: string, password: string) => {
   const user = await User.findOne({ email }).select('+passwordHash');
 
@@ -70,48 +67,37 @@ export const loginUser = async (email: string, password: string) => {
     role: user.role
   });
 
-  // Save refresh token in DB
-  user.refreshToken.push({
+  if (!user.refreshTokens) user.refreshTokens = [];
+
+  user.refreshTokens.push({
     token: refresh_token,
-    expireAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7) // 7 days
+    expireAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7) 
   });
+
   user.lastLogin = new Date();
   await user.save();
 
-  // Remove sensitive info
-  const { passwordHash, refreshToken: _, ...safeUser } = user.toObject();
+  const { passwordHash, refreshTokens: _, ...safeUser } = user.toObject();
 
   return {
-    user: safeUser,
+    // user: safeUser,
     tokens: { access_token, refresh_token }
   };
 };
 
+// ========================= REFRESH TOKEN =========================
 export const refreshAccessToken = async (refreshToken: string): Promise<string> => {
-  // 1. Decode refresh token
   const decoded = verifyToken(refreshToken);
   if (typeof decoded === 'string') throw createUnauthorizedError('Invalid token');
 
-  // 2. Get user by ID
   const user = await User.findById(decoded.userId);
+  if (!user) throw createNotFoundError('User not found');
 
-  if (!user) {
-    throw createNotFoundError('User not found');
-  }
+  const storedToken = user.refreshTokens?.find((rt) => rt.token === refreshToken);
+  if (!storedToken) throw createUnauthorizedError('Refresh token not found');
 
-  // 3. Find refresh token inside array
-  const storedToken = user.refreshToken.find((rt) => rt.token === refreshToken);
+  if (storedToken.expireAt < new Date()) throw createUnauthorizedError('Refresh token expired');
 
-  // 4. Validate token
-  if (!storedToken) {
-    throw createUnauthorizedError('Refresh token not found');
-  }
-
-  if (storedToken.expireAt < new Date()) {
-    throw createUnauthorizedError('Refresh token expired');
-  }
-
-  // 5. Issue fresh access token
   const newAccessToken = generateAccessToken({
     userId: user._id.toString(),
     email: user.email,
@@ -121,6 +107,7 @@ export const refreshAccessToken = async (refreshToken: string): Promise<string> 
   return newAccessToken;
 };
 
+// ========================= FORGOT PASSWORD =========================
 export const forgotPassword = async (email: string) => {
   const user = await User.findOne({ email });
 
@@ -131,16 +118,12 @@ export const forgotPassword = async (email: string) => {
   const resetToken = generateResetToken({ userId: user._id.toString() });
 
   user.resetPasswordToken = resetToken;
-
-  user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); 
   await user.save();
 
   try {
     await sendPasswordResetEmail(
-      {
-        firstName: user.fullName,
-        email: user.email
-      },
+      { firstName: user.fullName, email: user.email },
       resetToken
     );
     console.log('Reset token:', resetToken);
@@ -153,21 +136,20 @@ export const forgotPassword = async (email: string) => {
   return { message: 'Password reset link has been sent to your email' };
 };
 
+// ========================= RESET PASSWORD =========================
 export const resetPassword = async (token: string, newPassword: string) => {
   const user = await User.findOne({
     resetPasswordToken: token,
     resetPasswordExpires: { $gt: new Date() }
   });
 
-  if (!user) {
-    throw createUnauthorizedError('invalid or expired reset token');
-  }
+  if (!user) throw createUnauthorizedError('Invalid or expired reset token');
 
   const hashpassword = await hashPassword(newPassword);
   user.passwordHash = hashpassword;
   user.resetPasswordToken = undefined;
   user.resetPasswordExpires = undefined;
-  user.refreshToken = [];
+  user.refreshTokens = [];
   await user.save();
 
   return {
@@ -178,14 +160,14 @@ export const resetPassword = async (token: string, newPassword: string) => {
   };
 };
 
+// ========================= LOGOUT =========================
 export const logoutService = async (refreshToken: string | null | undefined) => {
   if (!refreshToken) return;
 
-  const user = await User.findOne({ 'refreshToken.token': refreshToken });
+  const user = await User.findOne({ 'refreshTokens.token': refreshToken });
 
-  if (user) {
-    user.refreshToken = user.refreshToken.filter((tokenObj) => tokenObj.token !== refreshToken);
-
+  if (user && user.refreshTokens) {
+    user.refreshTokens = user.refreshTokens.filter((tokenObj) => tokenObj.token !== refreshToken);
     await user.save();
   }
 };

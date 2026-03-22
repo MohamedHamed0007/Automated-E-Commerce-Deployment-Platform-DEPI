@@ -1,5 +1,5 @@
 import nodemailer, { Transporter, SendMailOptions, SentMessageInfo } from 'nodemailer';
-import { IUserSafe } from '@/types/user';
+import { IUserSafe } from '@/types/User/user.mongoose.types';
 import { createInternalError } from '../ApiErrors/ApiErrors';
 import { env } from '../../config/env/env';
 

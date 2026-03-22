@@ -1,12 +1,7 @@
+import { IChat } from '@/types/Chat/chat.mongoose.types';
 import mongoose, { Document, Schema, Types } from 'mongoose';
 
-export interface IChat extends Document {
-  participants: Types.ObjectId[];   
-  shipmentRef?: Types.ObjectId;     
-  isOpen: boolean;                  
-  createdAt: Date;
-  updatedAt: Date;
-}
+
 
 const ChatSchema = new Schema<IChat>(
   {
@@ -32,5 +27,4 @@ const ChatSchema = new Schema<IChat>(
 
 // Index for fast look-up of a user's chats
 ChatSchema.index({ participants: 1 });
-
 export const Chat = mongoose.model<IChat>('Chat', ChatSchema);

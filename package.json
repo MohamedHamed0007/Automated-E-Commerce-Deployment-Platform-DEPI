@@ -1,6 +1,7 @@
 {
   "name": "shipsphere",
   "version": "1.0.0",
+  
   "scripts": {
     "dev": "cross-env NODE_ENV=development ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",

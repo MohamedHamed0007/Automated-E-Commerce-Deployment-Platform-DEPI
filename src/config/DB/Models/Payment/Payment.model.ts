@@ -1,11 +1,6 @@
-import { Schema, model, Document, Types } from "mongoose";
+import { IPayment } from "@/types/Payment/payment.mongoose.types";
+import { Schema, model} from "mongoose";
 
-export interface IPayment extends Document {
-  shipmentId: Types.ObjectId;
-  amount: number;
-  status: "pending" | "paid" | "failed";
-  paidAt?: Date;
-}
 
 const PaymentSchema = new Schema<IPayment>(
   {

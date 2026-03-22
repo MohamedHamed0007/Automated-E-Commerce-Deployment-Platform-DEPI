@@ -1,12 +1,9 @@
 import jwt, { SignOptions, JwtPayload as JwtBasePayload } from 'jsonwebtoken';
 import { env } from '../../config/env/env';
 import { createUnauthorizedError } from '../ApiErrors/ApiErrors';
+import { JwtPayload } from '@/types/User/token.types';
 
-interface JwtPayload {
-  userId: string;
-  email: string;
-  role: 'admin' | 'customer' | 'driver';
-}
+
 
 export const generateAccessToken = (payload: JwtPayload): string => {
   if (!env.JWT_SECRET) {

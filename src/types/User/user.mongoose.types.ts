@@ -1,22 +1,24 @@
-import { Document } from 'mongoose';
-// User interface extending Mongoose Document
+
+import { Document } from "mongoose";
+
 export interface IUser extends Document {
   fullName: string;
   email: string;
   passwordHash: string;
-  role: 'admin' | 'customer' | 'driver';
-  creditCardToken?: string;
+  role: "user" | "admin" | "customer" | "driver";
   isBlocked: boolean;
   isVerified: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
-  refreshToken: {
-    token: string;
-    expireAt: Date;
-  }[];
+  refreshTokens: IRefreshToken[];
   resetPasswordToken?: string | null;
   resetPasswordExpires?: Date | null;
-  lastLogin: Date;
+  stripeCustomerId?: string | null;
+  lastLogin?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+export interface IRefreshToken {
+  token: string;
+  expireAt: Date;
 }
 
 // Input type for registration

@@ -1,9 +1,9 @@
 
 import express, { Application, Request, Response } from "express";
+import {env} from "../src/config/env/env"
 import { createServer } from 'http';
-import bootstrap from './app';
-import { env } from './config/env/env';
 import { createSocketServer } from './config/Socket/Socket.server';
+import bootstrap from "./app";
 
 const startServer = async () => {
   const app: Application = express();

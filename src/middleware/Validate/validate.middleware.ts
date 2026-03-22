@@ -38,7 +38,7 @@ export const validateObjectId = (paramName = "id") => {
   };
 };
 
-export const validateQuery = (schema: Joi.Schema) => {
+export const validateQuery = (schema: Schema) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const { error, value } = schema.validate(req.query, { abortEarly: false });
     if (error) {

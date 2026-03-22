@@ -10,11 +10,11 @@ import {
 import { authentication, authlimit } from '../../middleware/Auth/auth.middleware';
 import { registerValidation } from '../../Validation/Auth/auth.validation';
 import { valid } from 'joi';
-import { ValidationRequest } from '../../middleware/Validate/validate.middleware';
+import { validateBody } from '../../middleware/Validate/validate.middleware';
 
 const authRouter = express.Router();
 
-authRouter.post('/register', authlimit, ValidationRequest(registerValidation), register);
+authRouter.post('/register', authlimit, validateBody(registerValidation), register);
 
 authRouter.post('/login', authlimit, login);
 

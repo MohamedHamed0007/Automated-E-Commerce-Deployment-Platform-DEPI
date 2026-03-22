@@ -3,20 +3,22 @@
     "baseUrl": "src",
     "paths": {
       "@/*": ["*"],
-      "@types/*": ["src/types/*"],
-      "@utils/*": ["src/utils/*"],
-      "@models/*": ["src/models/*"]
+      "@types/*": ["types/*"],
+      "@utils/*": ["utils/*"],
+      "@models/*": ["config/DB/Models/*"]
     },
+
     "rootDir": "./src",
     "outDir": "./dist",
 
-    "module": "ESNext",
-    "moduleResolution": "Node",
+    "module": "CommonJS",
     "target": "ES2020",
-    "resolveJsonModule": true, 
+    "moduleResolution": "Node",
+
+    "resolveJsonModule": true,
     "types": ["node"],
     "lib": ["ES2020"],
-    
+
     "sourceMap": true,
     "strict": true,
     "esModuleInterop": true,

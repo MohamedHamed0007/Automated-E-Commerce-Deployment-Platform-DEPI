@@ -1,25 +1,7 @@
+import { IRefreshToken, IUser } from "@/types/User/user.mongoose.types";
 import mongoose, { Document, Schema } from "mongoose";
 
-export interface IRefreshToken {
-  token: string;
-  expireAt: Date;
-}
 
-export interface IUser extends Document {
-  fullName: string;
-  email: string;
-  passwordHash: string;
-  role: "user" | "admin";
-  isBlocked: boolean;
-  isVerified: boolean;
-  refreshTokens: IRefreshToken[];
-  resetPasswordToken?: string | null;
-  resetPasswordExpires?: Date | null;
-  stripeCustomerId?: string | null;
-  lastLogin?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 const RefreshTokenSchema = new Schema<IRefreshToken>(
   {
