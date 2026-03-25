@@ -23,3 +23,23 @@ export const getChatById = asyncHandler(
     return ApiResponse.success(res, 'Chat fetched', chat);
   }
 );
+
+export const getUsers = async (req: Request, res: Response) => {
+  const users = await adminService.getAllUsersService();
+  res.json(users);
+};
+
+export const removeUser = async (req: Request, res: Response) => {
+  await adminService.deleteUserService(req.params.id);
+  res.json({ message: 'User deleted successfully' });
+};
+
+// export const getShipments = async (req: Request, res: Response) => {
+//   const shipments = await getAllShipmentsService();
+//   res.json(shipments);
+// };
+
+// export const removeShipment = async (req: Request, res: Response) => {
+//   await deleteShipmentService(req.params.id);
+//   res.json({ message: 'Shipment deleted successfully' });
+// };

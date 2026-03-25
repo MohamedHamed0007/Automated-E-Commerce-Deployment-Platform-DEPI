@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 import { Chat } from '../../config/DB/Models/Chat/Chat.model';
 import { Message } from '../../config/DB/Models/Message/Message.model';
+import User from '../../config/DB/Models/User/user.models';
 
 /**
  * Returns all chats with last message, unread count, and user info.
@@ -14,8 +15,8 @@ export const listAllChats = async (page = 1, limit = 20) => {
         from: 'messages',
         localField: '_id',
         foreignField: 'chat',
-        as: 'messages',
-      },
+        as: 'messages'
+      }
     },
     // Join user info for all participants
     {
@@ -23,8 +24,8 @@ export const listAllChats = async (page = 1, limit = 20) => {
         from: 'users',
         localField: 'participants',
         foreignField: '_id',
-        as: 'participantInfo',
-      },
+        as: 'participantInfo'
+      }
     },
     // Join shipment info
     {
@@ -32,8 +33,8 @@ export const listAllChats = async (page = 1, limit = 20) => {
         from: 'shipments',
         localField: 'shipmentRef',
         foreignField: '_id',
-        as: 'shipmentInfo',
-      },
+        as: 'shipmentInfo'
+      }
     },
     // Compute derived fields
     {
@@ -44,25 +45,25 @@ export const listAllChats = async (page = 1, limit = 20) => {
             $filter: {
               input: '$messages',
               as: 'm',
-              cond: { $eq: ['$$m.read', false] },
-            },
-          },
+              cond: { $eq: ['$$m.read', false] }
+            }
+          }
         },
         totalMessages: { $size: '$messages' },
-        shipment: { $arrayElemAt: ['$shipmentInfo', 0] },
-      },
+        shipment: { $arrayElemAt: ['$shipmentInfo', 0] }
+      }
     },
     // Remove raw arrays to keep response lean
     {
       $project: {
         messages: 0,
         shipmentInfo: 0,
-        'participantInfo.password': 0,
-      },
+        'participantInfo.password': 0
+      }
     },
     { $sort: { updatedAt: -1 } },
     { $skip: (page - 1) * limit },
-    { $limit: limit },
+    { $limit: limit }
   ]);
 };
 
@@ -83,8 +84,24 @@ export const getAdminChatById = async (chatId: string) => {
   // Get unread count for this specific chat
   const unreadCount = await Message.countDocuments({
     chat: chatId,
-    read: false,
+    read: false
   });
 
   return { ...chat.toObject(), unreadCount };
 };
+
+export const getAllUsersService = async () => {
+  return await User.find();
+};
+
+export const deleteUserService = async (userId: string) => {
+  return await User.findByIdAndDelete(userId);
+};
+
+// export const getAllShipmentsService = async () => {
+//   return await Shipment.find();
+// };
+
+// export const deleteShipmentService = async (shipmentId: string) => {
+//   return await Shipment.findByIdAndDelete(shipmentId);
+// };

@@ -42,8 +42,8 @@ export const authentication = asyncHandler(
     if (!token) {
       throw createUnauthorizedError('no token provided');
     }
-    console.log("TOKEN RECEIVED:", req.headers.authorization);
-console.log("COOKIE TOKEN:", req.cookies?.accessToken);
+    console.log('TOKEN RECEIVED:', req.headers.authorization);
+    console.log('COOKIE TOKEN:', req.cookies?.accessToken);
     const decoded = verifyToken(token); // type depends on verifyToken return type
 
     req.user = decoded;
@@ -51,3 +51,10 @@ console.log("COOKIE TOKEN:", req.cookies?.accessToken);
     next();
   }
 );
+
+export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ message: 'Access denied: Admins only' });
+  }
+  next();
+};
