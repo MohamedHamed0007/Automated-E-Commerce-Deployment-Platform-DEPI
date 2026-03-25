@@ -1,9 +1,21 @@
 import { Types } from "mongoose";
-import { Document } from "mongoose";
 
-export interface IPayment extends Document {
+export type PaymentStatus = "pending" | "succeeded" | "failed";
+
+export interface IPayment {
   shipmentId: Types.ObjectId;
+  userId: Types.ObjectId;
+
   amount: number;
-  status: "pending" | "paid" | "failed";
+  currency: string;
+
+  status: PaymentStatus;
+
+  stripePaymentIntentId?: string;
+  idempotencyKey?: string;
+
   paidAt?: Date;
+
+  createdAt?: Date;
+  updatedAt?: Date;
 }
