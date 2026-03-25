@@ -5,7 +5,6 @@ import { RegisterData } from '@/types/User/user.mongoose.types';
 // Import auth services
 import {
   loginUser,
-  refreshAccessToken,
   registerUser,
   forgotPassword,
   resetPassword,
