@@ -9,13 +9,14 @@ import {
   registerUser,
   forgotPassword,
   resetPassword,
-  logoutService
+  logoutService,
+  refreshAccessTokenService
 } from '../../Services/auth/auth.service';
 // Import asyncHandler to automatically catch errors in async functions
 import { asyncHandler } from '../../utils/AsyncHandler/asyncHandler.utils';
 
 // Import validation error utility
-import { createValidationError } from '../../utils/ApiErrors/ApiErrors';
+import { createUnauthorizedError, createValidationError } from '../../utils/ApiErrors/ApiErrors';
 
 // =====================
 // Register a new user
@@ -35,30 +36,28 @@ export const register = asyncHandler(async (req, res) => {
 // Login user
 // =====================
 export const login = asyncHandler(async (req, res) => {
-  // Call service to login with email and password
-  const { user, tokens } = await loginUser(req.body.email, req.body.password);
+  const { user, accessToken, refreshToken } = await loginUser(req.body.email, req.body.password);
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: '/'
+  });
 
-  // Send success response with user info and tokens
-  successResponse(res, 'Login successful', user, 200, tokens);
+  successResponse(res, 'Login successful', { user, accessToken }, 200);
 });
 
 // =====================
 // Refresh access token
 // =====================
-export const refreshToken = asyncHandler(async (req, res) => {
-  // Get refresh token from headers or cookies
-  const refreshToken = req.headers.refreshtoken || req.cookies.refreshtoken;
+export const refreshTokenController = asyncHandler(async (req, res) => {
+  const refreshToken = req.cookies.refreshToken;
+  if (!refreshToken) throw createUnauthorizedError('Refresh token is missing');
 
-  // Ensure refresh token exists
-  if (!refreshToken) {
-    throw new Error('refresh token is required');
-  }
+  const newAccessToken = await refreshAccessTokenService(refreshToken);
 
-  // Call service to generate a new access token
-  const token = await refreshAccessToken(refreshToken);
-
-  // Send the new access token in response
-  successResponse(res, 'Token refreshed successfully', { accessToken: token });
+  successResponse(res, 'Token refreshed successfully', { accessToken: newAccessToken });
 });
 
 // =====================

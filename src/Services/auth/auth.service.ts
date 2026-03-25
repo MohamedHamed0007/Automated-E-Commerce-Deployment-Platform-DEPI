@@ -14,7 +14,6 @@ import {
   generateResetToken,
   verifyToken
 } from '../../utils/Token/token.utils';
-import { encrypt } from '../../utils/Encrypt/encrypt.util';
 
 // ========================= REGISTER =========================
 export const registerUser = async (userData: RegisterData): Promise<IUserSafe> => {
@@ -30,7 +29,7 @@ export const registerUser = async (userData: RegisterData): Promise<IUserSafe> =
     email,
     role: userData.role || 'customer',
     passwordHash,
-    refreshTokens: [], 
+    refreshTokens: [],
     createdAt: new Date(),
     updatedAt: new Date()
   });
@@ -47,46 +46,39 @@ export const registerUser = async (userData: RegisterData): Promise<IUserSafe> =
 };
 
 // ========================= LOGIN =========================
+
 export const loginUser = async (email: string, password: string) => {
   const user = await User.findOne({ email }).select('+passwordHash');
-
   if (!user) throw createUnauthorizedError('Invalid email or password');
 
   const isPasswordValid = await comparePassword(password, user.passwordHash);
   if (!isPasswordValid) throw createUnauthorizedError('Invalid email or password');
 
-  const access_token = generateAccessToken({
+  const payload = {
     userId: user._id.toString(),
     email: user.email,
     role: user.role
-  });
+  };
 
-  const refresh_token = generateRefreshToken({
-    userId: user._id.toString(),
-    email: user.email,
-    role: user.role
-  });
-
-  if (!user.refreshTokens) user.refreshTokens = [];
+  const accessToken = generateAccessToken(payload);
+  const refreshToken = generateRefreshToken(payload);
 
   user.refreshTokens.push({
-    token: refresh_token,
-    expireAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7) 
+    token: refreshToken,
+    expireAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   });
-
   user.lastLogin = new Date();
   await user.save();
 
-  const { passwordHash, refreshTokens: _, ...safeUser } = user.toObject();
+  const { passwordHash: _, refreshTokens: __, ...safeUser } = user.toObject();
 
-  return {
-    // user: safeUser,
-    tokens: { access_token, refresh_token }
-  };
+  return { user: safeUser as IUserSafe, accessToken, refreshToken };
 };
 
-// ========================= REFRESH TOKEN =========================
-export const refreshAccessToken = async (refreshToken: string): Promise<string> => {
+// ========================= REFRESH TOKEN
+export const refreshAccessTokenService = async (refreshToken: string): Promise<string> => {
+  if (!refreshToken) throw createUnauthorizedError('Refresh token missing');
+
   const decoded = verifyToken(refreshToken);
   if (typeof decoded === 'string') throw createUnauthorizedError('Invalid token');
 
@@ -106,7 +98,6 @@ export const refreshAccessToken = async (refreshToken: string): Promise<string> 
 
   return newAccessToken;
 };
-
 // ========================= FORGOT PASSWORD =========================
 export const forgotPassword = async (email: string) => {
   const user = await User.findOne({ email });
@@ -118,14 +109,11 @@ export const forgotPassword = async (email: string) => {
   const resetToken = generateResetToken({ userId: user._id.toString() });
 
   user.resetPasswordToken = resetToken;
-  user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); 
+  user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000);
   await user.save();
 
   try {
-    await sendPasswordResetEmail(
-      { firstName: user.fullName, email: user.email },
-      resetToken
-    );
+    await sendPasswordResetEmail({ firstName: user.fullName, email: user.email }, resetToken);
     console.log('Reset token:', resetToken);
   } catch (error) {
     user.resetPasswordToken = null;
