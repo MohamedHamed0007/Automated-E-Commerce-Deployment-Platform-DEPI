@@ -1,12 +1,20 @@
+import { Schema, model, Document } from "mongoose";
 import { IPayment } from "@/types/Payment/payment.mongoose.types";
-import { Schema, model} from "mongoose";
 
 
-const PaymentSchema = new Schema<IPayment>(
+export interface IPaymentDocument extends IPayment, Document {}
+
+const PaymentSchema = new Schema<IPaymentDocument>(
   {
     shipmentId: {
       type: Schema.Types.ObjectId,
       ref: "Shipment",
+      required: true,
+    },
+
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
       required: true,
     },
 
@@ -15,10 +23,25 @@ const PaymentSchema = new Schema<IPayment>(
       required: true,
     },
 
+    currency: {
+      type: String,
+      default: "egp",
+    },
+
     status: {
       type: String,
-      enum: ["pending", "paid", "failed"],
+      enum: ["pending", "succeeded", "failed"], 
       default: "pending",
+    },
+
+    stripePaymentIntentId: {
+      type: String,
+    },
+
+    idempotencyKey: {
+      type: String,
+      unique: true,
+      sparse: true,
     },
 
     paidAt: {
@@ -28,4 +51,4 @@ const PaymentSchema = new Schema<IPayment>(
   { timestamps: true }
 );
 
-export default model<IPayment>("Payment", PaymentSchema);
+export default model<IPaymentDocument>("Payment", PaymentSchema);
