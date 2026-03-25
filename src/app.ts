@@ -10,7 +10,7 @@ import { errorHandler } from './middleware/Error/error.middleware';
 import routerHandler from './utils/RouterHandler/routerHandler';
 
 const bootstrap = async (app: express.Application): Promise<void> => {
-  app.use(express.json());
+
   app.use(
     cors({
       origin: env.ALLOWED_ORIGINS
@@ -19,6 +19,10 @@ const bootstrap = async (app: express.Application): Promise<void> => {
       credentials: true,
     })
   );
+
+  app.use("/api/stripe/webhook", express.raw({ type: "application/json" }));
+  app.use(express.json());
+    
 
   await connectDB();
 
