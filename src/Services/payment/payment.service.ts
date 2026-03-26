@@ -15,7 +15,6 @@ export const createPaymentIntentForShipment = async ({
   amount,
   currency = "egp",
 }: CreatePaymentInput) => {
-  // 1) create local payment record first
   const payment = await Payment.create({
     shipmentId: new Types.ObjectId(shipmentId),
     userId: new Types.ObjectId(userId),
@@ -24,10 +23,14 @@ export const createPaymentIntentForShipment = async ({
     status: "pending",
   });
 
-  // 2) create Stripe payment intent
+  const stripeAmount = Math.round(amount * 100);
+
   const paymentIntent = await stripe.paymentIntents.create({
-    amount,
+    amount: stripeAmount,
     currency,
+    automatic_payment_methods: {
+      enabled: true,
+    },
     metadata: {
       paymentId: payment._id.toString(),
       shipmentId,
@@ -35,7 +38,6 @@ export const createPaymentIntentForShipment = async ({
     },
   });
 
-  // 3) save Stripe intent id
   payment.stripePaymentIntentId = paymentIntent.id;
   await payment.save();
 
@@ -45,7 +47,10 @@ export const createPaymentIntentForShipment = async ({
   };
 };
 
-export const markPaymentSucceeded = async (paymentId: string, paidAt = new Date()) => {
+export const markPaymentSucceeded = async (
+  paymentId: string,
+  paidAt = new Date()
+) => {
   return Payment.findByIdAndUpdate(
     paymentId,
     {
