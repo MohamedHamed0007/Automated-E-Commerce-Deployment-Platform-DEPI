@@ -1,6 +1,6 @@
 import rateLimit from 'express-rate-limit';
 import { Request, Response, NextFunction } from 'express';
-import { createUnauthorizedError } from '../../utils/ApiErrors/ApiErrors';
+import { createForbiddenError, createUnauthorizedError } from '../../utils/ApiErrors/ApiErrors';
 import { asyncHandler } from '../../utils/AsyncHandler/asyncHandler.utils';
 import { verifyToken } from '../../utils/JWT/jwt.util';
 
@@ -57,4 +57,18 @@ export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
     return res.status(403).json({ message: 'Access denied: Admins only' });
   }
   next();
+};
+
+export const authorization = (...roles: string[]) => {
+  return asyncHandler(async (req, res, next) => {
+    if (!req.user) {
+      throw createForbiddenError('user info in not found');
+    }
+
+    if (!roles.includes(req.user.role)) {
+      throw createForbiddenError(` only ${roles.join(', ')}  can access this api  `);
+    }
+
+    next();
+  });
 };
