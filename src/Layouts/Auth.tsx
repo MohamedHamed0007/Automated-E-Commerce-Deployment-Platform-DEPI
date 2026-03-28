@@ -6,7 +6,7 @@ const Auth = () => {
   return (
     <div className="flex min-h-screen bg-gray-100 dark:bg-gray-950">
       {/* Sidebar */}
-      <div className="hidden md:block md:w-64 flex-shrink-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800">
+      <div className="hidden md:block md:w-64 shrink-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800">
         <Sidebar />
       </div>
 

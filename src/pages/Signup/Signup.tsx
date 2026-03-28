@@ -63,168 +63,128 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2 bg-white dark:bg-[#0B0F1A] text-slate-900 dark:text-slate-100 font-sans">
-      {/* LEFT PANEL: Branding */}
-      <div className="hidden lg:flex flex-col justify-between h-full px-20 py-16 bg-[#0F172A] border-r border-slate-200 dark:border-slate-800 relative overflow-hidden">
-        {/* Decorative background glow */}
-        <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-          <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-600 rounded-full blur-[120px]"></div>
+    <div className="min-h-screen grid lg:grid-cols-2 bg-gradient-to-br from-white to-slate-100 dark:from-[#080B15] dark:to-[#0E1424] text-slate-900 dark:text-slate-100 font-sans">
+      {/* LEFT PANEL */}
+      <div className="hidden lg:flex flex-col justify-between h-full px-20 py-16 bg-[#0E1526] border-r border-slate-700/20 relative overflow-hidden">
+        {/* Glow Background */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -top-32 -left-32 w-[420px] h-[420px] bg-blue-600/40 rounded-full blur-[140px]" />
+          <div className="absolute bottom-0 right-0 w-[380px] h-[380px] bg-purple-600/30 rounded-full blur-[160px]" />
         </div>
 
-        <div className="relative z-10">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-xl shadow-lg shadow-blue-500/30 text-white">
-              🚢
-            </div>
-            <span className="text-xl font-black tracking-tighter text-white uppercase">
-              ShipSphere
-            </span>
+        {/* Logo */}
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-400 rounded-xl flex items-center justify-center text-2xl shadow-lg shadow-blue-500/30 text-white animate-pulse">
+            🚢
           </div>
+          <span className="text-2xl font-black tracking-tight text-white">ShipSphere</span>
         </div>
 
+        {/* Title */}
         <div className="relative z-10">
-          <h1 className="text-6xl font-black leading-[0.95] mb-6 text-white tracking-tighter uppercase">
+          <h1 className="text-6xl font-black leading-[0.9] mb-6 text-white tracking-tight mix-blend-screen">
             Start your <br />
-            <span className="text-blue-500 italic">Journey</span> here.
+            <span className="text-blue-400 italic drop-shadow-lg">Journey</span> now.
           </h1>
-          <p className="text-lg text-slate-400 font-medium max-w-sm">
-            Join the most advanced logistics network and start optimizing your global freight costs.
+          <p className="text-lg text-slate-300 font-medium max-w-sm leading-relaxed">
+            Join the world’s most advanced logistics platform and optimize your global supply chain.
           </p>
         </div>
 
+        {/* Image */}
         <div className="relative z-10 group">
           <img
             src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d"
             alt="Logistics"
-            className="relative rounded-2xl shadow-2xl w-full aspect-video object-cover border border-white/5 grayscale-[0.3] group-hover:grayscale-0 transition duration-500"
+            className="rounded-2xl shadow-2xl w-full aspect-video object-cover border border-white/10
+          grayscale-[0.4] group-hover:grayscale-0 transition-all duration-700 transform group-hover:scale-[1.02]"
           />
         </div>
       </div>
 
-      {/* RIGHT PANEL: Signup Form */}
-      <div className="flex items-center justify-center p-8 lg:p-16 overflow-y-auto">
-        <div className="w-full max-w-[440px]">
-          <header className="mb-10">
-            <h2 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-              Create Account
-            </h2>
-            <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
+      {/* RIGHT PANEL */}
+      <div className="flex items-center justify-center px-8 lg:px-16 py-12 overflow-y-auto">
+        <div className="w-full max-w-[460px] bg-white/60 dark:bg-slate-900/50 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/40 rounded-2xl shadow-2xl p-10 animate-fadeIn">
+          {/* Header */}
+          <header className="mb-10 text-center lg:text-left">
+            <h2 className="text-4xl font-black tracking-tight">Create Account</h2>
+            <p className="text-slate-600 dark:text-slate-400 mt-2 font-medium">
               Join thousands of businesses globally.
             </p>
           </header>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {/* FULL NAME */}
-            <div className="space-y-1">
-              <label className="text-[12px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
-                Full Name
-              </label>
+          {/* FORM */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {/* FULLNAME */}
+            <div>
+              <label className="label">Full Name</label>
               <input
                 {...register('fullName')}
                 placeholder="Ex: John Doe"
-                className={`w-full px-5 py-3.5 rounded-xl border transition-all duration-300
-                  bg-slate-50 dark:bg-slate-900/40 text-slate-900 dark:text-white 
-                  placeholder:text-slate-400 dark:placeholder:text-slate-300/60
-                  outline-none focus:ring-4 focus:ring-blue-500/10
-                  ${errors.fullName ? 'border-red-500' : 'border-slate-200 dark:border-slate-800 focus:border-blue-500'}`}
+                className={`input ${errors.fullName && 'input-error'}`}
               />
-              {errors.fullName && (
-                <p className="text-red-500 text-xs font-bold mt-1 ml-1">
-                  {errors.fullName.message}
-                </p>
-              )}
+              {errors.fullName && <p className="error-text">{errors.fullName.message}</p>}
             </div>
 
             {/* EMAIL */}
-            <div className="space-y-1">
-              <label className="text-[12px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
-                Work Email
-              </label>
+            <div>
+              <label className="label">Work Email</label>
               <input
                 {...register('email')}
                 type="email"
                 placeholder="name@company.com"
-                className={`w-full px-5 py-3.5 rounded-xl border transition-all duration-300
-                  bg-slate-50 dark:bg-slate-900/40 text-slate-900 dark:text-white 
-                  placeholder:text-slate-400 dark:placeholder:text-slate-300/60
-                  outline-none focus:ring-4 focus:ring-blue-500/10
-                  ${errors.email ? 'border-red-500' : 'border-slate-200 dark:border-slate-800 focus:border-blue-500'}`}
+                className={`input ${errors.email && 'input-error'}`}
               />
-              {errors.email && (
-                <p className="text-red-500 text-xs font-bold mt-1 ml-1">{errors.email.message}</p>
-              )}
+              {errors.email && <p className="error-text">{errors.email.message}</p>}
             </div>
 
-            {/* PASSWORDS GRID */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-[12px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
-                  Password
-                </label>
+            {/* PASSWORDS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="label">Password</label>
                 <input
                   type="password"
                   {...register('password')}
-                  placeholder="••••••••"
-                  className={`w-full px-5 py-3.5 rounded-xl border bg-slate-50 dark:bg-slate-900/40 
-                    text-slate-900 dark:text-white placeholder:text-slate-300/60 outline-none
-                    ${errors.password ? 'border-red-500' : 'border-slate-200 dark:border-slate-800 focus:border-blue-500'}`}
+                  className={`input ${errors.password && 'input-error'}`}
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-[12px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
-                  Confirm
-                </label>
+              <div>
+                <label className="label">Confirm</label>
                 <input
                   type="password"
                   {...register('confirmPassword')}
-                  placeholder="••••••••"
-                  className={`w-full px-5 py-3.5 rounded-xl border bg-slate-50 dark:bg-slate-900/40 
-                    text-slate-900 dark:text-white placeholder:text-slate-300/60 outline-none
-                    ${errors.confirmPassword ? 'border-red-500' : 'border-slate-200 dark:border-slate-800 focus:border-blue-500'}`}
+                  className={`input ${errors.confirmPassword && 'input-error'}`}
                 />
               </div>
             </div>
+
             {(errors.password || errors.confirmPassword) && (
-              <p className="text-red-500 text-xs font-bold ml-1">
+              <p className="error-text">
                 {errors.password?.message || errors.confirmPassword?.message}
               </p>
             )}
 
             {/* TERMS */}
-            <div className="flex items-start gap-3 py-2 px-1">
-              <input
-                id="terms"
-                type="checkbox"
-                {...register('terms')}
-                className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:bg-slate-900 dark:border-slate-700"
-              />
-              <label
-                htmlFor="terms"
-                className="text-xs font-medium text-slate-600 dark:text-slate-400 leading-tight"
-              >
+            <div className="flex items-start gap-3 py-2">
+              <input type="checkbox" {...register('terms')} className="checkbox" />
+              <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
                 I agree to the{' '}
-                <span className="text-blue-600 dark:text-blue-400 cursor-pointer">
-                  Terms of Service
+                <span className="text-blue-600 dark:text-blue-300 underline cursor-pointer">
+                  Terms
                 </span>{' '}
                 and{' '}
-                <span className="text-blue-600 dark:text-blue-400 cursor-pointer">
+                <span className="text-blue-600 dark:text-blue-300 underline cursor-pointer">
                   Privacy Policy
                 </span>
                 .
               </label>
             </div>
-            {errors.terms && (
-              <p className="text-red-500 text-[10px] font-bold ml-1">{errors.terms.message}</p>
-            )}
+            {errors.terms && <p className="error-text">{errors.terms.message}</p>}
 
-            {/* SUBMIT */}
-            <button
-              type="submit"
-              disabled={!isValid || loading}
-              className="w-full bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-700 text-white py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all duration-300 shadow-xl disabled:opacity-40 flex justify-center items-center gap-3"
-            >
+            {/* BUTTON */}
+            <button type="submit" disabled={!isValid || loading} className="btn-primary">
               {loading ? (
-                <div className="h-5 w-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                <div className="loader"></div>
               ) : (
                 <>
                   Register Account <ArrowRight size={16} />
@@ -232,11 +192,11 @@ const Signup = () => {
               )}
             </button>
 
-            <p className="text-center text-sm font-semibold text-slate-500 dark:text-slate-400 pt-6">
+            <p className="text-center text-sm font-medium text-slate-500 dark:text-slate-400 pt-6">
               Already a member?{' '}
               <Link
                 to="/login"
-                className="text-blue-600 dark:text-blue-500 hover:underline decoration-2 underline-offset-4"
+                className="text-blue-600 dark:text-blue-400 underline font-semibold"
               >
                 Sign In
               </Link>

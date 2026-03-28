@@ -1,27 +1,32 @@
-import { createSlice } from "@reduxjs/toolkit";
-import type { PayloadAction } from "@reduxjs/toolkit";
+import { createSlice } from '@reduxjs/toolkit';
+import type { PayloadAction } from '@reduxjs/toolkit';
 
 interface ThemeState {
-  theme: "light" | "dark";
+  theme: 'light' | 'dark';
 }
 
-const savedTheme = (localStorage.getItem("theme") as "light" | "dark") || "light";
+const getSystemTheme = (): 'light' | 'dark' => {
+  if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    return 'dark';
+  }
+  return 'light';
+};
 
 const initialState: ThemeState = {
-  theme: savedTheme,
+  theme: getSystemTheme()
 };
 
 const themeSlice = createSlice({
-  name: "theme",
+  name: 'theme',
   initialState,
   reducers: {
-    setTheme: (state, action: PayloadAction<"light" | "dark">) => {
+    setTheme: (state, action: PayloadAction<'light' | 'dark'>) => {
       state.theme = action.payload;
     },
     toggleTheme: (state) => {
-      state.theme = state.theme === "light" ? "dark" : "light";
-    },
-  },
+      state.theme = state.theme === 'light' ? 'dark' : 'light';
+    }
+  }
 });
 
 export const { setTheme, toggleTheme } = themeSlice.actions;

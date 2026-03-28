@@ -5,8 +5,9 @@ import axios, {
   type AxiosResponse,
   type InternalAxiosRequestConfig
 } from 'axios';
-import { setAccessToken } from '../redux/slices/authSlice';
+import { setAccessToken, logout } from '../redux/slices/authSlice';
 
+// Ensure this matches your backend's prefix (usually plural 'users')
 const BASE_URL = 'http://localhost:3000/api/v1';
 
 const axiosInstance = axios.create({
@@ -28,9 +29,7 @@ axiosInstance.interceptors.request.use(
     }
     return config;
   },
-  (error: AxiosError) => {
-    return Promise.reject(error);
-  }
+  (error: AxiosError) => Promise.reject(error)
 );
 
 axiosInstance.interceptors.response.use(
@@ -38,22 +37,33 @@ axiosInstance.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
+    // 1. Handle 401 Unauthorized (Token Expired)
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
-        const res = await axios.post(`${BASE_URL}/refresh-token`, {}, { withCredentials: true });
+        // FIX: Added '/auth' prefix. Most refresh routes live in the Auth controller.
+        // Check your backend: if it's just '/refresh-token', remove '/auth'
+        const res = await axios.post(
+          `${BASE_URL}/auth/refresh-token`,
+          {},
+          { withCredentials: true }
+        );
 
-        const newAccessToken = res.data.accessToken;
+        const newAccessToken = res.data.data.accessToken;
 
+        // Update Redux
         store.dispatch(setAccessToken(newAccessToken));
 
+        // Update Header for the retry
         if (originalRequest.headers) {
           originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
         }
 
         return axiosInstance(originalRequest);
       } catch (err) {
+        // 2. If Refresh fails (404 or 401), force logout
+        store.dispatch(logout());
         return Promise.reject(err);
       }
     }

@@ -1,7 +1,7 @@
 // ─── All TypeScript Types ────────────────────────────────────────────────────
 
-export type Theme  = "light" | "dark";
-export type PageId = "home" | "services" | "about" | "contact" | "dashboard";
+export type Theme = 'light' | 'dark';
+export type PageId = 'home' | 'services' | 'about' | 'contact' | 'dashboard';
 
 export interface ThemeContextValue {
   theme: Theme;
@@ -45,4 +45,21 @@ export interface ContactForm {
   name: string;
   email: string;
   message: string;
+}
+export interface IAddress {
+  street?: string;
+  city?: string;
+  country?: string; 
+  state?: string; 
+}
+
+export interface User {
+  _id: string;
+  fullName: string;
+  email: string;
+  role: 'user' ;
+  phone?: string; 
+  address?: IAddress; 
+  createdAt?: string;
+  updatedAt?: string;
 }
