@@ -47,7 +47,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen lg:h-screen grid lg:grid-cols-2 bg-white dark:bg-slate-800 text-gray-900 dark:text-white">
+    <div className="min-h-screen lg:h-screen grid lg:grid-cols-2 bg-white dark:bg text-gray-900 dark:text-white">
       {/* LEFT PANEL: Branding & Marketing */}
       <div className="hidden lg:flex flex-col justify-around h-full px-16 py-12 bg-gradient-to-br from-blue-600 to-blue-700 text-white">
         <div className="flex items-center gap-3">
