@@ -23,20 +23,20 @@ export async function trackShipment(shipmentId: string, userId: string): Promise
     throw new Error("Tracking information not available for this shipment");
   }
 
-  const tracking = await (shippo as any).tracks.get(
+  const tracking = await shippo.trackingStatus.get(
     shipment.selectedRate.carrier,
     shipment.trackingNumber
   );
 
-  const events = tracking.trackingHistory?.map((event: any) => ({
+  const events = tracking.trackingHistory.map((event) => ({
     status: event.status,
     location: event.location ? `${event.location.city}, ${event.location.state}` : "Unknown",
-    date: event.date,
-  })) || [];
+    date: event.statusDate?.toISOString() || "",
+  }));
 
   return {
-    status: tracking.trackingStatus || "UNKNOWN",
-    statusDetails: tracking.trackingStatusDetails || "",
+    status: tracking.trackingStatus?.status || "UNKNOWN",
+    statusDetails: tracking.trackingStatus?.statusDetails || "",
     carrier: shipment.selectedRate.carrier,
     trackingNumber: shipment.trackingNumber,
     trackingUrl: shipment.trackingUrl || "",

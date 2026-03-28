@@ -11,7 +11,7 @@ import routerHandler from './utils/RouterHandler/routerHandler';
 const bootstrap = async (app: express.Application): Promise<void> => {
   app.use(
     cors({
-      origin: env.ALLOWED_ORIGINS ? env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()) : '*',
+      origin: process.env.ALLOWED_ORIGINS?.split(',') ?? 'http://localhost:3000',
       credentials: true
     })
   );

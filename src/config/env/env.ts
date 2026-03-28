@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
+import { Shippo } from 'shippo';
 
 const envDir = path.resolve(process.cwd(), 'env');
 const envFileBase = process.env.NODE_ENV === 'production' ? '.env.prod' : '.env.dev';
@@ -52,3 +53,5 @@ if (!env.JWT?.SECRET) {
 if (!env.MONGO_URI) {
   console.warn("WARNING: MONGO_URI is not defined in the environment.");
 }
+
+export const shippo = new Shippo({ apiKeyHeader: process.env.SHIPPO_API_KEY! });
