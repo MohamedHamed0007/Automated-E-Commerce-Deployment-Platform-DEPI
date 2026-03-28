@@ -33,9 +33,14 @@ export interface IShipment extends Document {
   senderAddress: IAddress;
   receiverAddress: IAddress;
   comparisonResults: IRate[]; // filled after carrier API call
-  selectedRate?: IRate; // filled when user picks one
+  shippoShipmentId?: string | null; // Shippo's shipment ID for rate lookup
+  selectedRate?: IRate | null; // filled when user picks one
   status: "draft" | "compared" | "booked" | "cancelled";
   paidOn?: Date;
+  trackingNumber?: string;
+  trackingUrl?: string;
+  labelUrl?: string;
   createdAt: Date;
   updatedAt: Date;
+  
 }

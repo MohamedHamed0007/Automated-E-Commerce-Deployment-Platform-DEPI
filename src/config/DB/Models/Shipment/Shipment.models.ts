@@ -38,6 +38,7 @@ const ShipmentSchema = new Schema<IShipment>(
     senderAddress: { type: AddressSchema, required: true },
     receiverAddress: { type: AddressSchema, required: true },
     comparisonResults: { type: [RateSchema], default: [] },
+    shippoShipmentId: { type: String, default: null },
     selectedRate: { type: RateSchema, default: null },
     status: {
       type: String,
@@ -45,6 +46,9 @@ const ShipmentSchema = new Schema<IShipment>(
       default: "draft",
     },
     paidOn: { type: Date, default: null },
+    trackingNumber: { type: String, default: null },
+    trackingUrl: { type: String, default: null },
+    labelUrl: { type: String, default: null },
   },
   { timestamps: true },
 );

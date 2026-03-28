@@ -1,29 +1,27 @@
-import { z } from "zod";
+import Joi from "joi";
 
-export const createShipmentSchema = z.object({
-  title: z
-    .string()
-    .min(3, "Title is required"),
-
-  description: z
-    .string()
-    .min(5, "Description is required"),
-
-  weight: z
-    .number()
-    .positive("Weight must be positive"),
-
-  origin: z
-    .string()
-    .min(2, "Origin is required"),
-
-  destination: z
-    .string()
-    .min(2, "Destination is required"),
-
-  price: z
-    .number()
-    .positive("Price must be positive"),
+const addressSchema = Joi.object({
+  street:  Joi.string().trim().required(),
+  city:    Joi.string().trim().required(),
+  state:   Joi.string().trim().required(),
+  zip:     Joi.string().trim().required(),
+  country: Joi.string().trim().length(2).uppercase().required(),
 });
 
-export type CreateShipmentInput = z.infer<typeof createShipmentSchema>;
+const packageSchema = Joi.object({
+  length: Joi.number().positive().required(),
+  width:  Joi.number().positive().required(),
+  height: Joi.number().positive().required(),
+  units:  Joi.string().valid("cm", "in").required(),
+  weight: Joi.number().positive().required(),
+});
+
+export const createShipmentSchema = Joi.object({
+  package:         packageSchema.required(),
+  senderAddress:   addressSchema.required(),
+  receiverAddress: addressSchema.required(),
+});
+
+export const selectRateSchema = Joi.object({
+  shippoRateId: Joi.string().trim().required(),
+});
