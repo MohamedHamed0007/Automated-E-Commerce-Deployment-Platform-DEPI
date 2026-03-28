@@ -77,13 +77,13 @@ export default function Help() {
     <div className="container mx-auto  space-y-6 bg-slate-820  text-white">
       <Breadcrumb
         items={[
-          { label: "Dashboard", href: "/dashboard" },
+          { label: "Dashboard", href: "/user" },
           { label: "Help Center" },
         ]}
       />
 
       <div>
-        <h1 className="text-3xl font-bold text-white">Help Center</h1>
+        <h1 className="text-3xl font-bold text-black dark:text-white ">Help Center</h1>
         <p className="text-slate-400 mt-1">Find answers and get support</p>
       </div>
 
@@ -121,7 +121,7 @@ export default function Help() {
      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
   
   {/* Live Chat */}
-  <Card
+  <Card 
     className="cursor-pointer 
                bg-white dark:bg-slate-900
                border border-gray-200 dark:border-slate-700

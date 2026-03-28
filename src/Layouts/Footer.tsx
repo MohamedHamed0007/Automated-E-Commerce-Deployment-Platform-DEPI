@@ -13,10 +13,10 @@ const Footer: FC = () => {
   };
 
   return (
-    <footer className="bg-slate-950 text-slate-400 py-12 sm:py-16">
+    <footer className="bg-white dark:bg-slate-950 text-gray-700 dark:text-slate-400 py-8 sm:py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10 mb-10 sm:mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-8 sm:mb-10">
 
           <div className="col-span-1 md:col-span-1 mb-6 sm:mb-0">
             <div className="flex items-center gap-2 mb-4">
@@ -41,7 +41,7 @@ const Footer: FC = () => {
                 {col.items.map((item: string) => (
                   <li key={item}>
                     <button
-                      onClick={() => handleNavigate("about")} // تحديث state فقط
+                      onClick={() => handleNavigate("about")} 
                       className="text-sm sm:text-base hover:text-blue-400 transition-colors w-full text-left"
                     >
                       {item}
@@ -54,7 +54,7 @@ const Footer: FC = () => {
 
         </div>
 
-        <div className="border-t border-slate-800 pt-6 sm:pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0">
+        <div className="border-t border-gray-200 dark:border-slate-800 pt-6 sm:pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0">
           <p className="text-xs sm:text-sm text-center sm:text-left">
             © 2026 ShipSmarter Platform. All rights reserved.
           </p>

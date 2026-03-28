@@ -1,16 +1,23 @@
 import type { FC } from "react";
-import { useAppDispatch } from "../../redux/hookredux";
-import { navigate } from "../../redux/navigateRedux/navigateSlice";
+// import { useAppDispatch } from "../../redux/hookredux";
+// import { navigate } from "../../redux/navigateRedux/navigateSlice";
 import { ArrowIcon } from "../icons";
 import Button from "../Buttons/Buttons";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 const ExclusiveOffers: FC = () => {
-  const dispatch = useAppDispatch();
+  // const dispatch = useAppDispatch();
+const navigate = useNavigate();
 
-  const handleClick = (page: string) => {
-    dispatch(navigate(page)); // مجرد تحديث state
-    // لو عايز لاحقاً ممكن تضيف navigate فعلي باستخدام react-router
-  };
+const handleProtectedAction = () => {
+  toast("Login required first 🚀", { icon: "🔒" });
+navigate("/login", { state: { from: "/offers" } });
+  
+};
+  // const handleClick = (page: string) => {
+  //   dispatch(navigate(page)); 
+  // };
 
   return (
     <section className="py-16 sm:py-20 lg:py-24 bg-white dark:bg-slate-900 transition-colors">
@@ -28,7 +35,7 @@ const ExclusiveOffers: FC = () => {
           </div>
           <button
             className="text-blue-600 dark:text-blue-400 text-sm font-semibold hover:underline hidden sm:block"
-            onClick={() => handleClick("offers")}
+            onClick={handleProtectedAction}
           >
             View all offers →
           </button>
@@ -52,7 +59,7 @@ const ExclusiveOffers: FC = () => {
               <Button
                 variant="white"
                 size="md"
-                onClick={() => handleClick("contact")}
+                 onClick={handleProtectedAction}
                 className="w-full sm:w-auto"
               >
                 Claim Offer <ArrowIcon />
@@ -74,7 +81,7 @@ const ExclusiveOffers: FC = () => {
               <Button
                 variant="primary"
                 size="md"
-                onClick={() => handleClick("contact")}
+                onClick={() => navigate("/signup")}
                 className="w-full sm:w-auto"
               >
                 Register Now <ArrowIcon />

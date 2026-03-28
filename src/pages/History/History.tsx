@@ -1,396 +1,425 @@
-import React, { useState } from "react";
-import { Search, Book, MessageCircle, Phone, Mail, Send } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Filter, Download, Eye, Package } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "../../components/Card";
 import { Button } from "../../components/Button";
-import { Input } from "../../components/Input/Input";
-import { Textarea } from "../../components/Textarea/Textarea";
 import { Breadcrumb } from "../../components/Breadcrumb";
-
-const faqs = [
-  {
-    category: "Getting Started",
-    items: [
-      {
-        q: "How do I create my first shipment?",
-        a: 'Click on "New Shipment" in the sidebar, fill in package details and addresses, then compare prices from different couriers.',
+import { Badge } from "../../components/Badge";
+ 
+type ShipmentStatus = "Processing" | "In Transit" | "Delivered" | "Pending";
+ 
+interface StoredShipment {
+  id: string;
+  trackingNumber: string;
+  courier: { name: string; price: number; deliveryTime: string } | string;
+  from: string;
+  to: string;
+  weight?: string | number;
+  dimensions?: string;
+  status: ShipmentStatus | string;
+  progress: number;
+  currentLocation?: string;
+  estimatedDelivery?: string;
+  events: {
+    status: string;
+    location: string;
+    date: string;
+    time: string;
+    completed: boolean;
+    current: boolean;
+  }[];
+  details?: Record<string, unknown>;
+}
+ 
+const statusConfig: Record<
+  string,
+  { label: string; variant: "warning" | "info" | "success" | "default" }
+> = {
+  Processing: { label: "Processing", variant: "warning" },
+  Pending: { label: "Pending", variant: "warning" },
+  "In Transit": { label: "In Transit", variant: "info" },
+  Delivered: { label: "Delivered", variant: "success" },
+};
+ 
+const ITEMS_PER_PAGE = 8;
+ 
+// جلب كل الشحنات المحفوظة في localStorage
+function loadShipmentsFromStorage(): StoredShipment[] {
+  const shipments: StoredShipment[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key?.startsWith("SH-")) continue;
+    try {
+      const parsed = JSON.parse(localStorage.getItem(key) ?? "");
+      if (parsed && parsed.trackingNumber) {
+        shipments.push(parsed as StoredShipment);
+      }
+    } catch {
+      // skip malformed entries
+    }
+  }
+  // ترتيب من الأحدث للأقدم
+  return shipments.reverse();
+}
+ 
+function getCourierName(
+  courier: StoredShipment["courier"] | undefined
+): string {
+  if (!courier) return "—";
+  return typeof courier === "object" ? courier.name : courier;
+}
+ 
+function getCourierPrice(
+  courier: StoredShipment["courier"] | undefined
+): number {
+  if (!courier) return 0;
+  return typeof courier === "object" ? courier.price : 0;
+}
+ 
+export default function History() {
+  const navigate = useNavigate();
+  const [shipments, setShipments] = useState<StoredShipment[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string>("All");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+ 
+  useEffect(() => {
+    setShipments(loadShipmentsFromStorage());
+  }, []);
+ 
+  // stats محسوبة من البيانات الحقيقية
+  const stats = useMemo(() => {
+    const total = shipments.length;
+    const delivered = shipments.filter(
+      (s) => s.status === "Delivered"
+    ).length;
+    const inTransit = shipments.filter(
+      (s) => s.status === "In Transit"
+    ).length;
+    const totalSpent = shipments.reduce(
+      (sum, s) => sum + getCourierPrice(s.courier),
+      0
+    );
+    return { total, delivered, inTransit, totalSpent };
+  }, [shipments]);
+ 
+  // فلترة
+  const filtered = useMemo(() => {
+    if (statusFilter === "All") return shipments;
+    return shipments.filter((s) => s.status === statusFilter);
+  }, [shipments, statusFilter]);
+ 
+  // pagination
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const paginated = filtered.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+ 
+  const handleViewShipment = (shipment: StoredShipment) => {
+    navigate(`/user/tracking/${shipment.trackingNumber}`, {
+      state: {
+        shipment,
+        courier:
+          typeof shipment.courier === "object" ? shipment.courier : undefined,
+        trackingNumber: shipment.trackingNumber,
       },
-      {
-        q: "How does price comparison work?",
-        a: "We gather real-time rates from all major courier companies and present them side-by-side so you can choose the best option.",
-      },
-    ],
-  },
-  {
-    category: "Payments",
-    items: [
-      {
-        q: "What payment methods do you accept?",
-        a: "We accept wallet balance, credit/debit cards, and digital payment methods.",
-      },
-      {
-        q: "Is my payment information secure?",
-        a: "Yes, all payments are encrypted and we never store your full card details.",
-      },
-    ],
-  },
-  {
-    category: "Shipping",
-    items: [
-      {
-        q: "How long does delivery take?",
-        a: "Delivery times vary by courier and service level, typically ranging from 2-7 business days.",
-      },
-      {
-        q: "Can I track my shipment?",
-        a: "Yes, you can track all shipments in real-time through our tracking page.",
-      },
-    ],
-  },
-];
-
-const chatMessages = [
-  {
-    id: 1,
-    sender: "support",
-    text: "Hello! How can I help you today?",
-    time: "10:30 AM",
-  },
-  {
-    id: 2,
-    sender: "user",
-    text: "I need help with tracking my shipment",
-    time: "10:31 AM",
-  },
-  {
-    id: 3,
-    sender: "support",
-    text: "I'd be happy to help! Could you provide your tracking number?",
-    time: "10:31 AM",
-  },
-];
-
-export default function Help() {
-  const [selectedFaq, setSelectedFaq] = useState<number | null>(null);
-  const [showChat, setShowChat] = useState(false);
-
+    });
+  };
+ 
+  const handleExport = () => {
+    const rows = [
+      ["Tracking ID", "From", "To", "Courier", "Status", "Price"],
+      ...shipments.map((s) => [
+        s.trackingNumber,
+        s.from,
+        s.to,
+        getCourierName(s.courier),
+        s.status,
+        `$${getCourierPrice(s.courier).toFixed(2)}`,
+      ]),
+    ];
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "shipment-history.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+ 
+  const statusOptions = ["All", "Processing", "Pending", "In Transit", "Delivered"];
+ 
   return (
-    <div className="container mx-auto  space-y-6 bg-slate-820  text-white">
+    <div className="space-y-6 mx-auto container text-gray-900 dark:text-gray-100">
       <Breadcrumb
         items={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Help Center" },
+          { label: "Dashboard", href: "/user" },
+          { label: "Shipment History" },
         ]}
       />
-
-      <div>
-        <h1 className="text-3xl font-bold text-white">Help Center</h1>
-        <p className="text-slate-400 mt-1">Find answers and get support</p>
-      </div>
-
-      {/* Search */}
-      <Card
-        className="bg-white dark:bg-slate-900 
-             border border-gray-200 dark:border-slate-700 
-             shadow-sm"
-      >
-        <div className="relative">
-          <Search
-            className="absolute left-4 top-1/2 -translate-y-1/2 
-                 w-5 h-5 
-                 text-gray-400 dark:text-slate-400"
-          />
-
-          <input
-            type="text"
-            placeholder="Search for help articles..."
-            className="w-full pl-12 pr-4 py-3 
-                 bg-white dark:bg-slate-900
-                 border border-gray-200 dark:border-slate-700
-                 text-gray-900 dark:text-white
-                 placeholder-gray-400 dark:placeholder-slate-500
-                 rounded-lg
-                 focus:outline-none
-                 focus:ring-2 focus:ring-blue-500/30
-                 focus:border-blue-500
-                 transition-colors duration-200"
-          />
+ 
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Shipment History
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">
+            View and manage all your past shipments
+          </p>
         </div>
-      </Card>
-
-      {/* Quick Actions */}
-     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-  
-  {/* Live Chat */}
-  <Card
-    className="cursor-pointer 
-               bg-white dark:bg-slate-900
-               border border-gray-200 dark:border-slate-700
-               hover:shadow-md
-               hover:-translate-y-1
-               transition-all duration-300"
-  >
-    <div className="text-center py-6">
-      <div className="w-16 h-16 bg-blue-600/10 dark:bg-blue-600/20 
-                      rounded-full flex items-center justify-center 
-                      mx-auto mb-4">
-        <MessageCircle className="w-8 h-8 text-blue-600 dark:text-blue-500" />
-      </div>
-
-      <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-        Live Chat
-      </h3>
-
-      <p className="text-sm text-gray-500 dark:text-slate-400">
-        Chat with our support team
-      </p>
-    </div>
-  </Card>
-
-  {/* Call Us */}
-  <Card
-    className="cursor-pointer 
-               bg-white dark:bg-slate-900
-               border border-gray-200 dark:border-slate-700
-               hover:shadow-md
-               hover:-translate-y-1
-               transition-all duration-300"
-  >
-    <div className="text-center py-6">
-      <div className="w-16 h-16 bg-green-600/10 dark:bg-green-600/20 
-                      rounded-full flex items-center justify-center 
-                      mx-auto mb-4">
-        <Phone className="w-8 h-8 text-green-600 dark:text-green-500" />
-      </div>
-
-      <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-        Call Us
-      </h3>
-
-      <p className="text-sm text-gray-500 dark:text-slate-400">
-        1-800-SHIP-FAST
-      </p>
-    </div>
-  </Card>
-
-  {/* Email Support */}
-  <Card
-    className="cursor-pointer 
-               bg-white dark:bg-slate-900
-               border border-gray-200 dark:border-slate-700
-               hover:shadow-md
-               hover:-translate-y-1
-               transition-all duration-300"
-  >
-    <div className="text-center py-6">
-      <div className="w-16 h-16 bg-purple-600/10 dark:bg-purple-600/20 
-                      rounded-full flex items-center justify-center 
-                      mx-auto mb-4">
-        <Mail className="w-8 h-8 text-purple-600 dark:text-purple-500" />
-      </div>
-
-      <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-        Email Support
-      </h3>
-
-      <p className="text-sm text-gray-500 dark:text-slate-400">
-        support@shipfast.com
-      </p>
-    </div>
-  </Card>
-
-</div>
-
-      {/* FAQs */}
-      <Card
-  className="bg-white dark:bg-slate-900
-             border border-gray-200 dark:border-slate-700
-             shadow-sm"
->
-  {/* Header */}
-  <div className="flex items-center gap-3 mb-6">
-    <div
-      className="w-10 h-10 
-                 bg-blue-600/10 dark:bg-blue-600/20
-                 rounded-lg flex items-center justify-center"
-    >
-      <Book className="w-5 h-5 text-blue-600 dark:text-blue-500" />
-    </div>
-
-    <div>
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-        Frequently Asked Questions
-      </h3>
-      <p className="text-sm text-gray-500 dark:text-slate-400">
-        Quick answers to common questions
-      </p>
-    </div>
-  </div>
-
-  {/* FAQ Content */}
-  <div className="space-y-6">
-    {faqs.map((category, catIndex) => (
-      <div key={catIndex}>
-        <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
-          {category.category}
-        </h4>
-
-        <div className="space-y-3">
-          {category.items.map((faq, faqIndex) => {
-            const key = catIndex * 100 + faqIndex;
-
-            return (
-              <div
-                key={key}
-                className="border border-gray-200 dark:border-slate-700
-                           rounded-lg overflow-hidden
-                           bg-gray-50 dark:bg-slate-800
-                           transition-colors"
-              >
+ 
+        <div className="flex gap-3 relative">
+          <Button
+            variant="secondary"
+            onClick={() => setShowFilterMenu((v) => !v)}
+          >
+            <Filter className="w-4 h-4 mr-1" />
+            Filter
+            {statusFilter !== "All" && (
+              <span className="ml-1 text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded-full">
+                {statusFilter}
+              </span>
+            )}
+          </Button>
+ 
+          {/* Filter Dropdown */}
+          {showFilterMenu && (
+            <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-10 overflow-hidden">
+              {statusOptions.map((opt) => (
                 <button
-                  onClick={() =>
-                    setSelectedFaq(selectedFaq === key ? null : key)
-                  }
-                  className="w-full flex items-center justify-between
-                             p-4 text-left
-                             hover:bg-gray-100 dark:hover:bg-slate-700
-                             transition-colors duration-200"
-                >
-                  <span className="font-medium text-gray-900 dark:text-white">
-                    {faq.q}
-                  </span>
-
-                  <svg
-                    className={`w-5 h-5 text-gray-400 dark:text-slate-400
-                                transition-transform duration-200 ${
-                                  selectedFaq === key ? "rotate-180" : ""
-                                }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-
-                {selectedFaq === key && (
-                  <div
-                    className="px-4 pb-4 text-sm
-                               text-gray-600 dark:text-slate-400"
-                  >
-                    {faq.a}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    ))}
-  </div>
-</Card>
-
-      {/* Contact Form */}
-     <Card
-  className="bg-white dark:bg-slate-900
-             border border-gray-200 dark:border-slate-700
-             shadow-sm"
->
-  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
-    Still Need Help?
-  </h3>
-
-  <div className="space-y-4">
-    
-    <Input
-      label="Subject"
-      className="bg-white dark:bg-slate-900
-                 border-gray-300 dark:border-slate-700
-                 text-gray-900 dark:text-white
-                 placeholder-gray-400 dark:placeholder-slate-500
-                 focus:ring-2 focus:ring-blue-500/30
-                 focus:border-blue-500
-                 transition-colors duration-200"
-    />
-
-    <Textarea
-      label="Message"
-      rows={5}
-      className="bg-white dark:bg-slate-900
-                 border-gray-300 dark:border-slate-700
-                 text-gray-900 dark:text-white
-                 placeholder-gray-400 dark:placeholder-slate-500
-                 focus:ring-2 focus:ring-blue-500/30
-                 focus:border-blue-500
-                 transition-colors duration-200"
-    />
-
-    <Button
-      className="w-full flex items-center justify-center gap-2
-                 bg-blue-600 hover:bg-blue-700
-                 text-white
-                 transition-colors duration-200"
-    >
-      <Send className="w-4 h-4" />
-      Submit Ticket
-    </Button>
-
-  </div>
-</Card>
-      {/* Chat Widget */}
-      {showChat && (
-        <div className="fixed bottom-6 right-6 w-96 bg-slate-800 rounded-xl shadow-2xl border border-slate-700 overflow-hidden z-50">
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 flex justify-between items-center">
-            <p className="font-semibold">Live Support</p>
-            <button
-              onClick={() => setShowChat(false)}
-              className="hover:bg-white/10 p-1 rounded"
-            >
-              ✕
-            </button>
-          </div>
-
-          <div className="h-96 overflow-y-auto p-4 bg-slate-900 space-y-4">
-            {chatMessages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[75%] rounded-lg p-3 ${
-                    message.sender === "user"
-                      ? "bg-blue-600 text-white"
-                      : "bg-slate-700 text-white"
+                  key={opt}
+                  onClick={() => {
+                    setStatusFilter(opt);
+                    setCurrentPage(1);
+                    setShowFilterMenu(false);
+                  }}
+                  className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                    statusFilter === opt
+                      ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-medium"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                   }`}
                 >
-                  <p className="text-sm">{message.text}</p>
-                  <p className="text-xs mt-1 text-slate-400">{message.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="p-4 border-t border-slate-700 bg-slate-800">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Type your message..."
-                className="flex-1 px-4 py-2 bg-slate-800 border border-slate-700 text-white placeholder-slate-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
-              />
-              <Button
-                size="sm"
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Send className="w-4 h-4" />
-              </Button>
+                  {opt}
+                </button>
+              ))}
             </div>
-          </div>
+          )}
+ 
+          <Button variant="secondary" onClick={handleExport}>
+            <Download className="w-4 h-4 mr-1" />
+            Export
+          </Button>
         </div>
-      )}
+      </div>
+ 
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+            Total Shipments
+          </p>
+          <p className="text-3xl font-bold text-gray-900 dark:text-blue-400">
+            {stats.total}
+          </p>
+        </Card>
+        <Card>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+            Delivered
+          </p>
+          <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+            {stats.delivered}
+          </p>
+        </Card>
+        <Card>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+            In Transit
+          </p>
+          <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+            {stats.inTransit}
+          </p>
+        </Card>
+        <Card>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+            Total Spent
+          </p>
+          <p className="text-3xl font-bold text-gray-900 dark:text-green-400">
+            ${stats.totalSpent.toFixed(2)}
+          </p>
+        </Card>
+      </div>
+ 
+      {/* Table */}
+      <Card>
+        {shipments.length === 0 ? (
+          // Empty state
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+              <Package className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+              No Shipments Yet
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400 mb-6 text-sm">
+              Your shipment history will appear here after you place an order.
+            </p>
+            <Button onClick={() => navigate("/user/newshipment")}>
+              Create Your First Shipment
+            </Button>
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    {[
+                      "Tracking ID",
+                      "Route",
+                      "Courier",
+                      "Price",
+                      "Status",
+                      "Actions",
+                    ].map((h) => (
+                      <th
+                        key={h}
+                        className="text-left py-4 px-4 font-medium text-gray-600 dark:text-gray-400"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginated.map((shipment) => (
+                    <tr
+                      key={shipment.trackingNumber}
+                      className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200"
+                    >
+                      {/* Tracking ID */}
+                      <td className="py-4 px-4">
+                        <p className="font-mono font-medium text-gray-900 dark:text-white text-xs">
+                          {shipment.trackingNumber}
+                        </p>
+                      </td>
+ 
+                      {/* Route */}
+                      <td className="py-4 px-4">
+                        <p className="text-gray-900 dark:text-gray-200">
+                          {shipment.from}
+                        </p>
+                        <p className="text-gray-500 dark:text-gray-400">
+                          → {shipment.to}
+                        </p>
+                      </td>
+ 
+                      {/* Courier */}
+                      <td className="py-4 px-4">
+                        <span className="text-gray-900 dark:text-gray-200">
+                          {getCourierName(shipment.courier)}
+                        </span>
+                      </td>
+ 
+                      {/* Price */}
+                      <td className="py-4 px-4">
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          ${getCourierPrice(shipment.courier).toFixed(2)}
+                        </span>
+                      </td>
+ 
+                      {/* Status */}
+                      <td className="py-4 px-4">
+                        <Badge
+                          variant={
+                            statusConfig[shipment.status]?.variant ?? "default"
+                          }
+                        >
+                          {statusConfig[shipment.status]?.label ??
+                            shipment.status}
+                        </Badge>
+                      </td>
+ 
+                      {/* Actions */}
+                      <td className="py-4 px-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="gap-2 dark:text-white dark:hover:bg-gray-700"
+                          onClick={() => handleViewShipment(shipment)}
+                        >
+                          <Eye className="w-4 h-4" />
+                          View
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+ 
+            {/* Pagination */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-6 pt-6 border-t border-gray-200 dark:border-gray-800">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Showing{" "}
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filtered.length)}
+                </span>{" "}
+                to{" "}
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {Math.min(currentPage * ITEMS_PER_PAGE, filtered.length)}
+                </span>{" "}
+                of{" "}
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {filtered.length}
+                </span>{" "}
+                shipments
+              </p>
+ 
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((p) => p - 1)}
+                  className="dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700"
+                >
+                  Previous
+                </Button>
+ 
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (page) => (
+                    <Button
+                      key={page}
+                      size="sm"
+                      variant={currentPage === page ? "primary" : "secondary"}
+                      onClick={() => setCurrentPage(page)}
+                      className={
+                        currentPage === page
+                          ? "bg-gray-900 text-white hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                          : "dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700"
+                      }
+                    >
+                      {page}
+                    </Button>
+                  )
+                )}
+ 
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  className="dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700"
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </Card>
     </div>
   );
 }

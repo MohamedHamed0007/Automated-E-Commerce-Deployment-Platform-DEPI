@@ -1,6 +1,6 @@
 import { Check, Clock, Shield, Star, TrendingUp, Zap } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Badge } from '../../components/Badge';
 import { Breadcrumb } from '../../components/Breadcrumb';
 import { Button } from '../../components/Button';
@@ -25,8 +25,8 @@ const couriers = [
     id: 2,
     name: 'FedEx Standard',
     logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/FedEx_Express.svg/200px-FedEx_Express.svg.png',
-    price: 38.50,
-    originalPrice: 42.00,
+    price: 38.5,
+    originalPrice: 42.0,
     deliveryTime: '3-5 days',
     rating: 4.6,
     reviews: 980,
@@ -50,7 +50,7 @@ const couriers = [
     name: 'UPS Ground',
     logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/UPS_Logo_Shield_2017.svg/200px-UPS_Logo_Shield_2017.svg.png',
     price: 41.75,
-    originalPrice: 45.50,
+    originalPrice: 45.5,
     deliveryTime: '3-4 days',
     rating: 4.7,
     reviews: 1120,
@@ -68,12 +68,26 @@ const filters = [
 
 export default function Compare() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const shipment = location.state?.shipment; // << لازم تبعت shipment من NewShipment أو الصفحة السابقة
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [selectedCourier, setSelectedCourier] = useState<number | null>(null);
 
+  if (!shipment) {
+    return (
+      <div className="py-24 text-center">
+        <h2 className="text-xl font-semibold">No shipment data found</h2>
+        <Button onClick={() => navigate('/user/newshipment')} className="mt-4">
+          Go Back
+        </Button>
+      </div>
+    );
+  }
+
   const handleBookNow = (courier: typeof couriers[0]) => {
     setSelectedCourier(courier.id);
-    navigate('/payment', { state: { courier } });
+    // تبعت shipmentId و courier للـ Payment page
+    navigate(`/user/payment/${shipment.id}`, { state: { courier, shipment } });
   };
 
   const getBadgeIcon = (badge: BadgeType) => {
@@ -90,23 +104,29 @@ export default function Compare() {
   return (
     <div className="space-y-6 container mx-auto">
       {/* Breadcrumb */}
-      <Breadcrumb 
+      <Breadcrumb
         items={[
-          { label: 'Dashboard', href: '/dashboard' },
-          { label: 'New Shipment', href: '/newShipment' },
+          { label: 'Dashboard', href: '/user' },
+          { label: 'New Shipment', href: '/user/newshipment' },
           { label: 'Compare Prices' },
         ]}
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between ">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Compare Shipping Rates</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            Compare Shipping Rates
+          </h1>
           <p className="text-gray-600 dark:text-gray-300 mt-1">
             Choose the best option for your shipment
           </p>
         </div>
-        <Button variant="ghost" className='bg-white' onClick={() => navigate('/newShipment')}>
+        <Button
+          variant="ghost"
+          className="bg-white"
+          onClick={() => navigate('/user/newshipment')}
+        >
           Edit Details
         </Button>
       </div>
@@ -120,13 +140,15 @@ export default function Compare() {
             </div>
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-300">Shipment Details</p>
-              <p className="font-semibold text-gray-900 dark:text-gray-100">5.0 kg • 30×20×15 cm</p>
+              <p className="font-semibold text-gray-900 dark:text-gray-100">
+                {shipment.weight} kg • {shipment.dimensions}
+              </p>
             </div>
           </div>
           <div className="text-right">
             <p className="text-sm text-gray-600 dark:text-gray-300">Route</p>
             <p className="font-semibold text-gray-900 dark:text-gray-100">
-              New York, NY → Los Angeles, CA
+              {shipment.from} → {shipment.to}
             </p>
           </div>
         </div>
@@ -150,7 +172,7 @@ export default function Compare() {
       </div>
 
       {/* Comparison Cards */}
-      <div className="space-y-4 ">
+      <div className="space-y-4">
         {couriers.map((courier) => (
           <Card
             key={courier.id}
@@ -166,19 +188,22 @@ export default function Compare() {
                   src={courier.logo}
                   alt={courier.name}
                   className="max-w-full max-h-full object-contain p-2"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
                 />
               </div>
 
               {/* Courier Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-start gap-3 mb-2">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{courier.name}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    {courier.name}
+                  </h3>
                   <div className="flex gap-2">
                     {courier.badges.map((badge) => (
-                      <Badge key={badge} variant={badge as BadgeType} className="flex items-center gap-1">
+                      <Badge
+                        key={badge}
+                        variant={badge as BadgeType}
+                        className="flex items-center gap-1"
+                      >
                         {getBadgeIcon(badge)}
                         <span className="capitalize">{badge}</span>
                       </Badge>

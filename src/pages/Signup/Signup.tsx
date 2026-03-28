@@ -4,6 +4,7 @@ import { z } from "zod";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Truck } from "lucide-react";
+import toast from "react-hot-toast";
 
 const schema = z
   .object({
@@ -38,18 +39,27 @@ const Signup = () => {
     mode: "onChange",
   });
 
-  const onSubmit = async (data: FormData) => {
+const onSubmit = async (data: FormData) => {
+  try {
     setLoading(true);
-    // Simulate API call
-    await new Promise((r) => setTimeout(r, 1500));
-    console.log(data);
-    setLoading(false);
-    // Redirect to dashboard or home page after successful signup
-    navigate("/");
-  };
+    await new Promise((resolve) => setTimeout(resolve, 1200));
 
+    localStorage.setItem("signupData", JSON.stringify({
+      email: data.email,
+      password: data.password,
+    }));
+
+    toast.success("Account created successfully!");
+    navigate("/login"); 
+
+  } catch (err) {
+    toast.error("Something went wrong");
+  } finally {
+    setLoading(false);
+  }
+};
   return (
-    <div className="min-h-screen lg:h-screen grid lg:grid-cols-2">
+    <div  className=" lg:h-screen grid lg:grid-cols-2 pt-24 lg:pt-0 container">
       {/* LEFT PANEL */}
       <div className="hidden lg:flex flex-col justify-between h-full px-16 py-12 bg-linear-to-br from-blue-600 to-blue-800 text-white">
         {/* LOGO */}
@@ -81,7 +91,7 @@ const Signup = () => {
       </div>
 
       {/* RIGHT PANEL */}
-      <div className="flex items-center justify-center h-full px-6 bg-gray-50 dark:bg-gray-900">
+      <div className="flex items-center justify-center h-full px-6 pt-5 pb-5 bg-gray-50 dark:bg-gray-900">
         <div className="w-full max-w-md">
           <form
             onSubmit={handleSubmit(onSubmit)}
@@ -255,14 +265,14 @@ const Signup = () => {
             </button>
 
             {/* DIVIDER */}
-            <div className="flex items-center gap-4 my-6 text-gray-400 text-sm">
+            {/* <div className="flex items-center gap-4 my-6 text-gray-400 text-sm">
               <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
               OR CONTINUE WITH
               <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
-            </div>
+            </div> */}
 
             {/* GOOGLE SIGNUP */}
-            <button
+            {/* <button
               type="button"
               className="w-full border border-gray-300 dark:border-gray-600 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700      
   transition font-medium flex items-center justify-center"
@@ -290,7 +300,7 @@ const Signup = () => {
                 />
               </svg>
               Continue with Google
-            </button>
+            </button> */}
 
             {/* LOGIN LINK */}
             <p className="text-center text-sm mt-6 text-gray-600 dark:text-gray-400">

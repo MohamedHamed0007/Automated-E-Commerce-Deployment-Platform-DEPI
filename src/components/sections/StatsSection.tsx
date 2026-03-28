@@ -3,7 +3,7 @@ import { STATS } from "../data";
 import type { Stat } from "../../types";
 
 const StatsSection: FC = () => (
-  <section className="
+  <section  id="impact" className="
     py-14 sm:py-16 lg:py-20
     bg-gradient-to-br
     from-blue-600 to-blue-800

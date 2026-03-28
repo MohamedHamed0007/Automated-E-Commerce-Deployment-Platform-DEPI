@@ -1,7 +1,8 @@
 import { Asterisk, Banknote, Eye, LocateFixed, MapPin, MoveRight, Rocket, Send } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const About = () => {
-  // const navigate = useNavigate();
+  const navigate = useNavigate();
 
   return (
     <div className="bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100">
@@ -58,7 +59,7 @@ const About = () => {
 
                   {/* Button */}
                   <button
-                    // onClick={() => navigate("/login")}
+                    onClick={() => navigate("/login")}
                     className="bg-blue-600 text-white px-10 py-4 rounded-xl font-bold 
                                 hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/30 
                                 transition-all flex items-center justify-center gap-2 cursor-pointer"
@@ -202,7 +203,7 @@ const About = () => {
               <div className="flex flex-wrap justify-center gap-4">
 
                 <button
-                  // onClick={() => navigate("/login")}
+                  onClick={() => navigate("/login")}
                   className="rounded-xl bg-blue-600 px-10 py-5 text-lg font-bold text-white 
                               hover:bg-blue-500 transition-all shadow-xl shadow-blue-300/40 cursor-pointer"
                 >
@@ -210,7 +211,7 @@ const About = () => {
                 </button>
 
                 <button
-                  // onClick={() => navigate("/login")}
+                  onClick={() => navigate("/login")}
                   className="rounded-xl bg-white/10 px-10 py-5 text-lg font-bold text-white 
                               backdrop-blur-md hover:bg-white/20 border border-white/20 transition-all cursor-pointer"
                 >

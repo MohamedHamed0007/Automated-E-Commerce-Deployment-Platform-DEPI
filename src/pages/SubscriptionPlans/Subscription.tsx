@@ -61,7 +61,7 @@ export default function Subscription() {
                     p-6 rounded-xl transition-colors duration-300">
 
       <Breadcrumb items={[
-        { label: 'Dashboard', href: '/dashboard' },
+        { label: 'Dashboard', href: '/user' },
         { label: 'Subscription Plans' }
       ]} />
 

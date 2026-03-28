@@ -2,7 +2,7 @@ import type { FC } from "react";
 import { PARTNERS } from "../data";
 
 const Partners: FC = () => (
-  <section className="
+  <section id="partners" className="
     py-12 sm:py-14 lg:py-16
     bg-white dark:bg-slate-900
     border-y border-slate-100 dark:border-slate-800

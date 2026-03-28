@@ -11,11 +11,11 @@ const Home = () => {
     <>
    
       
-      <HeroSection />       {/* أول section */}
-      <HowItWorks />        {/* ثاني section */}
-      <Partners />          {/* ثالث section */}
-      <ExclusiveOffers />   {/* رابع section */}
-      <StatsSection />      {/* خامس section */}
+      <HeroSection />      
+      <HowItWorks />        
+      <Partners />          
+      <ExclusiveOffers />  
+      <StatsSection />     
   
     </>
   );

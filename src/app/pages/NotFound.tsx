@@ -27,7 +27,7 @@ export default function NotFound() {
           </Button>
           <Button 
             variant="secondary" 
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/user')}
             className="flex items-center gap-2 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700 dark:border-gray-700"
           >
             <Home className="w-4 h-4" />

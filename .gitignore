@@ -9,7 +9,10 @@ build/
 .env
 .env.local
 .env.*.local
-
+env/.env.dev
+env/.env.prod
+.env
+.env.*
 # IDE directories
 .vscode/
 .idea/
