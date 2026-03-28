@@ -34,6 +34,8 @@ export const env = {
   FRONTEND_URL:process.env.FRONTEND_URL as string,
   ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS as string,
   API_PREFIX: process.env.API_PREFIX as string,
+  SHIPPO_API_KEY: process.env.SHIPPO_API_KEY as string,
+  STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY as string,
   JWT: {
     SECRET: process.env.JWT_SECRET as string,
     ACCESS_EXPIRE: process.env.JWT_ACCESS_EXPIRE as string,

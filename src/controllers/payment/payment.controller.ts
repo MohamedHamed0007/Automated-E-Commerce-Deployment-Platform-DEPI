@@ -50,6 +50,7 @@ export const createPaymentController = async (req: Request, res: Response) => {
     return res.status(201).json({
       clientSecret: result.clientSecret,
       paymentId: result.payment._id,
+      paymenyIntentId: result.payment.stripePaymentIntentId,
     });
   } catch (error: any) {
     return res.status(500).json({
@@ -74,6 +75,7 @@ export const confirmPaymentController = async (req: Request, res: Response) => {
 
     const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, {
       return_url: returnUrl,
+      payment_method: "pm_card_visa",
     });
 
     return res.json({

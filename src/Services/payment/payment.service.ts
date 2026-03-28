@@ -30,6 +30,7 @@ export const createPaymentIntentForShipment = async ({
     currency,
     automatic_payment_methods: {
       enabled: true,
+      
     },
     metadata: {
       paymentId: payment._id.toString(),
