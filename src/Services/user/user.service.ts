@@ -15,25 +15,27 @@ export const getProfile = async (userId: string): Promise<IUserSafe> => {
 };
 
 // -------- Update Profile ----------
-export const updateProfile = async (
-  userId: string,
-  updatedData: Partial<IUser>
-): Promise<IUserSafe> => {
-  // Fields the user MUST NOT update
-  delete updatedData.passwordHash;
-  delete updatedData.email;
-  delete updatedData.role;
-  delete updatedData.refreshTokens;
+export const updateProfile = async (userId: string, updatedData: any): Promise<IUserSafe> => {
 
-  const user = await User.findByIdAndUpdate(userId, updatedData, {
-    new: true
-  })
+  const { fullName, phone, street, city, country } = updatedData;
+
+  const finalUpdate: any = {
+    fullName,
+    phone,
+    address: {
+      street: street || null,
+      city: city || null,
+      country: country || null
+    }
+  };
+
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { $set: finalUpdate },
+    { new: true, runValidators: true }
+  )
     .select('-passwordHash -refreshTokens')
     .lean<IUserSafe>();
-
-  if (!user) {
-    throw createNotFoundError('user not found');
-  }
 
   return user;
 };

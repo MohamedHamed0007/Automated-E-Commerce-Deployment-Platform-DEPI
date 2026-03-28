@@ -8,6 +8,12 @@ export interface IUser extends Document {
   role: "user" | "admin" | "customer" | "driver";
   isBlocked: boolean;
   isVerified: boolean;
+  phone?: string;
+  address?: {
+    street?: string | null;
+    city?: string | null;
+    country?: string | null;
+  };
   refreshTokens: IRefreshToken[];
   resetPasswordToken?: string | null;
   resetPasswordExpires?: Date | null;
@@ -16,6 +22,8 @@ export interface IUser extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
+
+
 export interface IRefreshToken {
   token: string;
   expireAt: Date;

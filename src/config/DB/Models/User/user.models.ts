@@ -22,18 +22,23 @@ const UserSchema = new Schema<IUser>(
       trim: true,
     },
     passwordHash: { type: String, required: true },
-    role: { type: String, enum: ["user", "admin"], default: "user" },
+    role: { type: String, enum: ["user", "admin", "customer", "driver"], default: "user" },
     isBlocked: { type: Boolean, default: false },
     isVerified: { type: Boolean, default: false },
+    phone: { type: String, default: null },
+    
+    address: {
+      street: { type: String, default: null },
+      city: { type: String, default: null },
+      country: { type: String, default: null },
+    },
 
     refreshTokens: {
       type: [RefreshTokenSchema],
       default: [],
     },
-
     resetPasswordToken: { type: String, default: null },
     resetPasswordExpires: { type: Date, default: null },
-
     stripeCustomerId: { type: String, default: null },
     lastLogin: { type: Date, default: null },
   },

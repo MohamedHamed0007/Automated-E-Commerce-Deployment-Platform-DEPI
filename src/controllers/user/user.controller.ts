@@ -8,9 +8,17 @@ export const getUserProfile = asyncHandler(async (req, res, next) => {
 });
 
 export const UpdateProfile = asyncHandler(async (req, res) => {
-  const user = await updateProfile(req.user.userId, req.body);
+  const { fullName, phone, street, city, country } = req.body;
 
-  successResponse(res, 'Profile updated successfully', user, 200);
+  const user = await updateProfile(req.user.userId, {
+    fullName,
+    phone,
+    street,
+    city,
+    country
+  });
+
+  successResponse(res, 'Profile updated successfully', { user }, 200);
 });
 
 export const changeUserPassword = asyncHandler(async (req, res) => {
