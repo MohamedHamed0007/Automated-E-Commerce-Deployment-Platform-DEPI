@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "baseUrl": "src",
+    "paths": {
+      "@/*": ["*"],
+      "@types/*": ["types/*"],
+      "@utils/*": ["utils/*"],
+      "@models/*": ["config/DB/Models/*"]
+    },
+
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    "module": "CommonJS",
+    "target": "ES2020",
+    "moduleResolution": "Node",
+
+    "resolveJsonModule": true,
+    "types": ["node"],
+    "lib": ["ES2020"],
+
+    "sourceMap": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["src"]
+}
