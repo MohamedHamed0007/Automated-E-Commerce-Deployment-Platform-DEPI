@@ -1,6 +1,10 @@
 import Joi from "joi";
 
+
 const addressSchema = Joi.object({
+  name:    Joi.string().trim().required().messages({ 'any.required': 'name is required' }),
+  phone:   Joi.string().trim().required().messages({ 'any.required': 'phone is required' }),
+  email:   Joi.string().trim().email().required().messages({ 'any.required': 'email is required' }),
   street:  Joi.string().trim().required(),
   city:    Joi.string().trim().required(),
   state:   Joi.string().trim().required(),
@@ -24,4 +28,12 @@ export const createShipmentSchema = Joi.object({
 
 export const selectRateSchema = Joi.object({
   shippoRateId: Joi.string().trim().required(),
+});
+
+
+export const trackShipmentSchema = Joi.object({
+
+  id: Joi.string().trim().required().messages({
+    'any.required': ' ID is required',
+  }),
 });

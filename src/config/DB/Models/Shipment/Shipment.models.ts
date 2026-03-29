@@ -1,9 +1,12 @@
 import { IAddress, IRate, IShipment } from "@/types/Shipment/shipment.mongoose.types";
 import mongoose, { Document, Schema } from "mongoose";
-// The shape of one item in the comparisonResults array
 
+// تحديث الـ Schema لتشمل بيانات التواصل الإلزامية لشركات الشحن
 const AddressSchema = new Schema<IAddress>(
   {
+    name: { type: String, required: true }, // اسم الشخص أو الجهة
+    phone: { type: String, required: true }, // رقم التليفون (مهم جداً لـ USPS)
+    email: { type: String, required: true }, // البريد الإلكتروني
     street: { type: String, required: true },
     city: { type: String, required: true },
     state: { type: String, required: true },
@@ -11,13 +14,13 @@ const AddressSchema = new Schema<IAddress>(
     country: { type: String, required: true },
   },
   { _id: false },
-); // _id:false because this is a sub-document
+);
 
 const RateSchema = new Schema<IRate>(
   {
     carrier: { type: String, required: true },
     service: { type: String, required: true },
-    finalRate: { type: Number, required: true }, // IMPORTANT: commission already added
+    finalRate: { type: Number, required: true },
     currency: { type: String, required: true },
     deliveryDays: { type: Number, required: true },
     shippoRateId: { type: String, required: true },

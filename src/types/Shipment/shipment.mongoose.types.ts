@@ -20,6 +20,9 @@ export interface IRate {
 
 // An address object
  export interface IAddress {
+  name: string; // اسم الشخص أو الجهة
+  phone: string; // رقم التليفون (مهم جداً لـ USPS)
+  email: string; // البريد الإلكتروني
   street: string;
   city: string;
   state: string;

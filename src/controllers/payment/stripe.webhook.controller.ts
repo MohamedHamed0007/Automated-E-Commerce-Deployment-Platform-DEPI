@@ -40,100 +40,87 @@ export const stripeWebhookController = async (req: Request, res: Response) => {
           break;
         }
 
-        // 1) Update payment status to paid
+        // 🟢 1. تحديث الدفع
         await markPaymentSucceeded(paymentId);
 
-        // 2) Fetch payment and shipment
+        // 🟢 2. جلب payment
         const payment = await Payment.findById(paymentId);
         if (!payment) {
-          console.warn("Payment not found for paymentId:", paymentId);
+          console.warn("Payment not found:", paymentId);
           break;
         }
 
+        // 🟢 3. جلب shipment
         const shipment = await Shipment.findById(payment.shipmentId);
         if (!shipment) {
-          console.warn("Shipment not found for shipmentId:", payment.shipmentId);
+          console.warn("Shipment not found:", payment.shipmentId);
           break;
         }
 
-        // 3) Prevent duplicate booking if webhook hits twice
-        if (shipment.status === "booked" && shipment.shippoShipmentId) {
-          console.log("Shipment already booked, skipping Shippo creation");
+        // 🟢 4. تحقق من البيانات
+        if (!shipment.selectedRate?.shippoRateId) {
+          console.warn("No shippoRateId in selectedRate");
           break;
         }
 
-        if (!shipment.selectedRate) {
-          console.warn("Shipment has no selectedRate");
+        // 🟢 5. منع التكرار (منع إعادة محاولة شراء بوليصة تم حجزها أو قيد المحاولة)
+        if (shipment.trackingNumber || shipment.status === "booked") {
+          console.log("Shipment already booked or processed, skipping Shippo purchase...");
           break;
         }
 
-        // 4) Create shipment in Shippo
-        const shipmentRes = await axios.post(
-          "https://api.goshippo.com/shipments/",
-          {
-            address_from: {
-              street1: shipment.senderAddress.street,
-              city: shipment.senderAddress.city,
-              state: shipment.senderAddress.state,
-              zip: shipment.senderAddress.zip,
-              country: shipment.senderAddress.country,
+        console.log("Attempting to buy Shippo rate:", shipment.selectedRate.shippoRateId);
+
+        // 🔥 6. شراء اللابل مباشرة (معزول في Try/Catch للتعامل مع أخطاء Shippo)
+        let transactionRes;
+        try {
+          transactionRes = await axios.post(
+            "https://api.goshippo.com/transactions/",
+            {
+              rate: shipment.selectedRate.shippoRateId,
+              label_file_type: "PDF",
+              async: false,
             },
-            address_to: {
-              street1: shipment.receiverAddress.street,
-              city: shipment.receiverAddress.city,
-              state: shipment.receiverAddress.state,
-              zip: shipment.receiverAddress.zip,
-              country: shipment.receiverAddress.country,
-            },
-            parcels: [
-              {
-                length: shipment.package.length,
-                width: shipment.package.width,
-                height: shipment.package.height,
-                distance_unit: shipment.package.units,
-                weight: shipment.package.weight,
-                mass_unit: "kg",
+            {
+              headers: {
+                Authorization: `ShippoToken ${process.env.SHIPPO_API_KEY}`,
+                "Content-Type": "application/json",
               },
-            ],
-            async: false,
-          },
-          {
-            headers: {
-              Authorization: `ShippoToken ${process.env.SHIPPO_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+            }
+          );
+        } catch (shippoError: any) {
+          // ❌ لو Shippo رفض العملية (مثل: Rate غير صالح أو مستخدم)
+          console.error(
+            "❌ Shippo API Error:",
+            JSON.stringify(shippoError?.response?.data || shippoError.message, null, 2)
+          );
+          
+          // تحديث الحالة لـ فشل الحجز لتجنب التعليق في حالة booked الوهمية
+          shipment.status = "cancelled";
+          await shipment.save();
+          break; 
+        }
 
-        shipment.shippoShipmentId = shipmentRes.data?.object_id || null;
+        // التأكد من أن Shippo يرجع SUCCESS وليس حالة أخرى مثل QUEUED
+        console.log("SHIPPO TRANSACTION RESPONSE STATUS:", transactionRes.data?.status);
 
-        // 5) Buy label using the selected rate
-        const transactionRes = await axios.post(
-          "https://api.goshippo.com/transactions/",
-          {
-            rate: shipment.selectedRate.shippoRateId,
-            label_file_type: "PDF",
-            async: false,
-          },
-          {
-            headers: {
-              Authorization: `ShippoToken ${process.env.SHIPPO_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        if (transactionRes.data?.status !== "SUCCESS") {
+          console.warn("Shippo transaction returned non-SUCCESS:", transactionRes.data);
+          shipment.status = "cancelled";
+          await shipment.save();
+          break;
+        }
 
-        // 6) Save tracking + label info
+        // 🟢 7. حفظ البيانات
         shipment.trackingNumber = transactionRes.data?.tracking_number || null;
-        shipment.trackingUrl =
-          transactionRes.data?.tracking_url_provider || null;
+        shipment.trackingUrl = transactionRes.data?.tracking_url_provider || null;
         shipment.labelUrl = transactionRes.data?.label_url || null;
         shipment.status = "booked";
         shipment.paidOn = new Date();
 
         await shipment.save();
 
-        console.log("Shipment booked successfully");
+        console.log("✅ Shipment booked successfully with tracking data");
         break;
       }
 
@@ -141,27 +128,24 @@ export const stripeWebhookController = async (req: Request, res: Response) => {
         const paymentIntent = event.data.object as any;
         const paymentId = paymentIntent.metadata?.paymentId;
 
-        if (!paymentId) {
-          console.warn("Missing paymentId in metadata");
-          break;
-        }
+        if (!paymentId) break;
 
         await markPaymentFailed(paymentId);
         break;
       }
 
       case "payment_intent.processing": {
-        console.log("Payment is processing");
+        console.log("Payment is processing...");
         break;
       }
 
-      default: {
+      default:
         console.log(`Unhandled event type: ${event.type}`);
-      }
     }
 
     return res.sendStatus(200);
   } catch (error: any) {
+    console.error("❌ Webhook error:", error?.response?.data || error.message);
     return res.status(500).json({
       message: "Webhook handler failed",
       error: error.message,

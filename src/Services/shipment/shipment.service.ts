@@ -25,9 +25,15 @@ interface SelectRateInput {
   shippoRateId: string;
 }
 
+/**
+ * بناء كائن العنوان لـ Shippo باستخدام البيانات الجديدة من الـ Model
+ * تم إضافة name, phone, email لتجنب رفض شركات الشحن (مثل USPS) للعملية
+ */
 function buildShippoAddress(address: IAddress) {
   return {
-    name: "Shipment",
+    name: address.name,
+    phone: address.phone,
+    email: address.email,
     street1: address.street,
     city: address.city,
     state: address.state,
@@ -37,7 +43,7 @@ function buildShippoAddress(address: IAddress) {
 }
 
 // -------------------------
-// 1️⃣ Create a new Shipment (Draft)
+// 1️⃣ إنشاء شحنة جديدة (Draft)
 // -------------------------
 export async function createShipment(data: CreateShipmentInput): Promise<IShipment> {
   return await ShipmentModel.create({
@@ -53,14 +59,14 @@ export async function createShipment(data: CreateShipmentInput): Promise<IShipme
 }
 
 // -------------------------
-// 2️⃣ Get User's Shipments
+// 2️⃣ جلب شحنات المستخدم
 // -------------------------
 export async function getUserShipments(userId: string): Promise<IShipment[]> {
   return await ShipmentModel.find({ userId }).sort({ createdAt: -1 });
 }
 
 // -------------------------
-// 3️⃣ Get Shipment by ID (with user ownership check)
+// 3️⃣ جلب شحنة بالـ ID مع التحقق من الملكية
 // -------------------------
 export async function getShipmentById(shipmentId: string, userId: string): Promise<IShipment> {
   const shipment = await ShipmentModel.findOne({ _id: shipmentId, userId });
@@ -69,7 +75,7 @@ export async function getShipmentById(shipmentId: string, userId: string): Promi
 }
 
 // -------------------------
-// 4️⃣ Compare Rates from Shippo
+// 4️⃣ مقارنة الأسعار من Shippo
 // -------------------------
 export async function compareRates(shipmentId: string, userId: string): Promise<IRate[]> {
   const shipment = await ShipmentModel.findOne({ _id: shipmentId, userId });
@@ -117,7 +123,7 @@ export async function compareRates(shipmentId: string, userId: string): Promise<
 }
 
 // -------------------------
-// 5️⃣ Select Rate (save rate, no label yet)
+// 5️⃣ اختيار السعر (حفظ السعر المختار دون شراء البوليصة)
 // -------------------------
 export async function selectRate(input: SelectRateInput): Promise<IShipment> {
   const shipment = await ShipmentModel.findOne({ _id: input.shipmentId, userId: input.userId });
@@ -131,38 +137,61 @@ export async function selectRate(input: SelectRateInput): Promise<IShipment> {
   if (!rate) throw new Error("The selected rate is not found in comparison results");
 
   shipment.selectedRate = rate;
-  shipment.status = "booked";
+  shipment.status = "compared";
   await shipment.save();
 
   return shipment;
 }
 
 // -------------------------
-// 6️⃣ Create Label (called by payment team after payment)
+// 6️⃣ إنشاء البوليصة (يتم استدعاؤها بواسطة Webhook بعد نجاح الدفع)
 // -------------------------
 export async function createLabel(shipmentId: string): Promise<IShipment> {
   const shipment = await ShipmentModel.findById(shipmentId);
   if (!shipment) throw createNotFoundError("Shipment not found");
 
-  if (shipment.status !== "booked" || !shipment.selectedRate) {
-    throw new Error("Shipment must be booked with a selected rate to create a label");
+  // منع التكرار لو تم الحجز مسبقاً
+  if (shipment.status === "booked" && shipment.trackingNumber) {
+    console.log("[DEBUG] Shipment already booked. Skipping label creation.");
+    return shipment;
   }
 
-  const transaction = await shippo.transactions.create({
-    rate: shipment.selectedRate.shippoRateId,
-    labelFileType: "PDF",
-    async: false,
-  });
-
-  if (transaction.status !== "SUCCESS") {
-    throw new Error(transaction.messages?.[0]?.text || "Label purchase failed");
+  // التأكد من وجود Rate مختار
+  if (!shipment.selectedRate || !shipment.selectedRate.shippoRateId) {
+    throw new Error("Shipment must have a selected rate to create a label");
   }
 
-  shipment.trackingNumber = transaction.trackingNumber;
-  shipment.trackingUrl = transaction.trackingUrlProvider;
-  shipment.labelUrl = transaction.labelUrl;
-  shipment.paidOn = new Date();
-  await shipment.save();
+  try {
+    console.log(`[DEBUG] Attempting Shippo Transaction for Rate ID: ${shipment.selectedRate.shippoRateId}`);
 
-  return shipment;
+    const transaction = await shippo.transactions.create({
+      rate: shipment.selectedRate.shippoRateId,
+      labelFileType: "PDF",
+      async: false,
+    });
+
+    console.log(`[DEBUG] Shippo Transaction Response Status: ${transaction.status}`);
+
+    if (transaction.status !== "SUCCESS") {
+      console.error("❌ Shippo Transaction Failed!");
+      console.error("Full Debug Messages:", JSON.stringify(transaction.messages, null, 2));
+      
+      throw new Error(transaction.messages?.[0]?.text || "Label purchase failed from Shippo side");
+    }
+
+    // النجاح: حفظ البيانات وتحديث الحالة لـ booked
+    shipment.trackingNumber = transaction.trackingNumber;
+    shipment.trackingUrl = transaction.trackingUrlProvider;
+    shipment.labelUrl = transaction.labelUrl;
+    shipment.paidOn = new Date();
+    shipment.status = "booked";
+
+    await shipment.save();
+    console.log("✅ Shipment status updated to 'booked' successfully.");
+
+    return shipment;
+  } catch (error: any) {
+    console.error("❌ Error in createLabel Service:", error.message);
+    throw error;
+  }
 }

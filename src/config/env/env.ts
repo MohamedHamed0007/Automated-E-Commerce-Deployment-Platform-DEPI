@@ -36,6 +36,7 @@ export const env = {
   API_PREFIX: process.env.API_PREFIX as string,
   SHIPPO_API_KEY: process.env.SHIPPO_API_KEY as string,
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY as string,
+  STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET as string,
   JWT: {
     SECRET: process.env.JWT_SECRET as string,
     ACCESS_EXPIRE: process.env.JWT_ACCESS_EXPIRE as string,
