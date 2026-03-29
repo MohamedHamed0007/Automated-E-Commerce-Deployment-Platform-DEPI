@@ -1,12 +1,12 @@
 import { IAddress, IRate, IShipment } from "@/types/Shipment/shipment.mongoose.types";
 import mongoose, { Document, Schema } from "mongoose";
 
-// تحديث الـ Schema لتشمل بيانات التواصل الإلزامية لشركات الشحن
+
 const AddressSchema = new Schema<IAddress>(
   {
-    name: { type: String, required: true }, // اسم الشخص أو الجهة
-    phone: { type: String, required: true }, // رقم التليفون (مهم جداً لـ USPS)
-    email: { type: String, required: true }, // البريد الإلكتروني
+    name: { type: String, required: true },
+    phone: { type: String, required: true }, 
+    email: { type: String, required: true }, 
     street: { type: String, required: true },
     city: { type: String, required: true },
     state: { type: String, required: true },

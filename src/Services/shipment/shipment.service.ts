@@ -25,10 +25,7 @@ interface SelectRateInput {
   shippoRateId: string;
 }
 
-/**
- * بناء كائن العنوان لـ Shippo باستخدام البيانات الجديدة من الـ Model
- * تم إضافة name, phone, email لتجنب رفض شركات الشحن (مثل USPS) للعملية
- */
+
 function buildShippoAddress(address: IAddress) {
   return {
     name: address.name,
@@ -42,9 +39,7 @@ function buildShippoAddress(address: IAddress) {
   };
 }
 
-// -------------------------
-// 1️⃣ إنشاء شحنة جديدة (Draft)
-// -------------------------
+
 export async function createShipment(data: CreateShipmentInput): Promise<IShipment> {
   return await ShipmentModel.create({
     userId: data.userId,
@@ -58,25 +53,17 @@ export async function createShipment(data: CreateShipmentInput): Promise<IShipme
   });
 }
 
-// -------------------------
-// 2️⃣ جلب شحنات المستخدم
-// -------------------------
 export async function getUserShipments(userId: string): Promise<IShipment[]> {
   return await ShipmentModel.find({ userId }).sort({ createdAt: -1 });
 }
 
-// -------------------------
-// 3️⃣ جلب شحنة بالـ ID مع التحقق من الملكية
-// -------------------------
 export async function getShipmentById(shipmentId: string, userId: string): Promise<IShipment> {
   const shipment = await ShipmentModel.findOne({ _id: shipmentId, userId });
   if (!shipment) throw createNotFoundError("Shipment not found");
   return shipment;
 }
 
-// -------------------------
-// 4️⃣ مقارنة الأسعار من Shippo
-// -------------------------
+
 export async function compareRates(shipmentId: string, userId: string): Promise<IRate[]> {
   const shipment = await ShipmentModel.findOne({ _id: shipmentId, userId });
   if (!shipment) throw createNotFoundError("Shipment not found");
@@ -122,9 +109,7 @@ export async function compareRates(shipmentId: string, userId: string): Promise<
   return rates;
 }
 
-// -------------------------
-// 5️⃣ اختيار السعر (حفظ السعر المختار دون شراء البوليصة)
-// -------------------------
+
 export async function selectRate(input: SelectRateInput): Promise<IShipment> {
   const shipment = await ShipmentModel.findOne({ _id: input.shipmentId, userId: input.userId });
   if (!shipment) throw createNotFoundError("Shipment not found");
@@ -143,20 +128,18 @@ export async function selectRate(input: SelectRateInput): Promise<IShipment> {
   return shipment;
 }
 
-// -------------------------
-// 6️⃣ إنشاء البوليصة (يتم استدعاؤها بواسطة Webhook بعد نجاح الدفع)
-// -------------------------
+
 export async function createLabel(shipmentId: string): Promise<IShipment> {
   const shipment = await ShipmentModel.findById(shipmentId);
   if (!shipment) throw createNotFoundError("Shipment not found");
 
-  // منع التكرار لو تم الحجز مسبقاً
+
   if (shipment.status === "booked" && shipment.trackingNumber) {
     console.log("[DEBUG] Shipment already booked. Skipping label creation.");
     return shipment;
   }
 
-  // التأكد من وجود Rate مختار
+ 
   if (!shipment.selectedRate || !shipment.selectedRate.shippoRateId) {
     throw new Error("Shipment must have a selected rate to create a label");
   }
@@ -179,7 +162,7 @@ export async function createLabel(shipmentId: string): Promise<IShipment> {
       throw new Error(transaction.messages?.[0]?.text || "Label purchase failed from Shippo side");
     }
 
-    // النجاح: حفظ البيانات وتحديث الحالة لـ booked
+ 
     shipment.trackingNumber = transaction.trackingNumber;
     shipment.trackingUrl = transaction.trackingUrlProvider;
     shipment.labelUrl = transaction.labelUrl;
