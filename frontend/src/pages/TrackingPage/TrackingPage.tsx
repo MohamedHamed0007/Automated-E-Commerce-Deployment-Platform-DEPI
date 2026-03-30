@@ -1,51 +1,27 @@
-import React from "react";
-import { useParams, useLocation } from "react-router-dom";
-import { Package, MapPin, AlertCircle, Clock } from "lucide-react";
+import React, { useEffect } from "react";
+import { useParams } from "react-router-dom";
+import { Package, MapPin, AlertCircle, Clock, Loader2 } from "lucide-react";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Breadcrumb } from "@/components/Breadcrumb";
- 
-interface TrackingEvent {
-  status: string;
-  location: string;
-  date: string;
-  time: string;
-  completed: boolean;
-  current: boolean;
-}
- 
-interface ShipmentData {
-  id: string;
-  trackingNumber: string;
-  courier: { name: string; price: number; deliveryTime: string } | string;
-  from: string;
-  to: string;
-  weight?: string | number;
-  dimensions?: string;
-  status: string;
-  progress: number;
-  currentLocation?: string;
-  estimatedDelivery?: string;
-  events: TrackingEvent[];
-}
+import { useAppDispatch, useAppSelector } from "../../redux/hookredux";
+import { getTracking } from "../../redux/thunk/trackingThunk";
+import { getShipmentById } from "../../redux/thunk/shipmentThunk";
  
 export default function Tracking() {
   const { trackingNumber } = useParams<{ trackingNumber: string }>();
-  const location = useLocation();
+  const dispatch = useAppDispatch();
+  const { tracking, loading, error } = useAppSelector((state) => state.tracking);
+  const { currentShipment } = useAppSelector((state) => state.shipment);
  
-  // أولوية البيانات: localStorage أولاً (الأدق)، ثم state
-  const storedRaw = trackingNumber
-    ? localStorage.getItem(trackingNumber)
-    : null;
-  const storedData: ShipmentData | null = storedRaw
-    ? JSON.parse(storedRaw)
-    : null;
+  useEffect(() => {
+    if (trackingNumber) {
+      dispatch(getTracking(trackingNumber));
+      dispatch(getShipmentById(trackingNumber));
+    }
+  }, [dispatch, trackingNumber]);
  
-  const stateShipment: ShipmentData | null = location.state?.shipment ?? null;
- 
-  const trackingData: ShipmentData | null = storedData ?? stateShipment;
- 
-  if (!trackingData) {
+  if (!trackingNumber) {
     return (
       <div className="space-y-6">
         <Breadcrumb
@@ -62,10 +38,7 @@ export default function Tracking() {
             Shipment Not Found
           </h2>
           <p className="text-gray-500 dark:text-gray-400 mb-6">
-            No shipment found with tracking number{" "}
-            <span className="font-mono font-medium text-gray-700 dark:text-gray-300">
-              {trackingNumber ?? "—"}
-            </span>
+            No shipment ID provided
           </p>
           <Button onClick={() => (window.location.href = "/user")}>
             Back to Dashboard
@@ -75,28 +48,64 @@ export default function Tracking() {
     );
   }
  
-  // normalize courier (قد يكون object أو string)
-  const courierName =
-    typeof trackingData.courier === "object"
-      ? trackingData.courier.name
-      : trackingData.courier;
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Breadcrumb
+          items={[
+            { label: "Dashboard", href: "/user" },
+            { label: "Track Shipment" },
+          ]}
+        />
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <Loader2 className="w-8 h-8 animate-spin mb-4 text-blue-600" />
+          <p className="text-gray-500 dark:text-gray-400">Loading tracking...</p>
+        </div>
+      </div>
+    );
+  }
  
-  const estimatedDelivery =
-    trackingData.estimatedDelivery ??
-    (typeof trackingData.courier === "object"
-      ? trackingData.courier.deliveryTime
-      : undefined) ??
-    "N/A";
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <Breadcrumb
+          items={[
+            { label: "Dashboard", href: "/user" },
+            { label: "Track Shipment" },
+          ]}
+        />
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4">
+            <AlertCircle className="w-8 h-8 text-red-500 dark:text-red-400" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            Shipment Not Found
+          </h2>
+          <p className="text-gray-500 dark:text-gray-400 mb-6">
+            {error}
+          </p>
+          <Button onClick={() => (window.location.href = "/user")}>
+            Back to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
  
-  const completedCount = trackingData.events.filter((e) => e.completed).length;
-  const progress =
-    trackingData.events.length > 0
-      ? Math.round((completedCount / trackingData.events.length) * 100)
-      : trackingData.progress ?? 0;
+  const courierName = tracking?.carrier ?? currentShipment?.selectedRate?.carrier ?? "—";
+  const estimatedDelivery = currentShipment?.selectedRate?.deliveryDays 
+    ? `${currentShipment.selectedRate.deliveryDays} days` 
+    : "N/A";
+  const progress = tracking?.events && tracking.events.length > 0 
+    ? Math.min(50 + (tracking.events.length * 10), 100) 
+    : 10;
+  const currentLocation = tracking?.events?.[0]?.location ?? currentShipment?.senderAddress.city ?? "—";
  
-  const currentLocation =
-    trackingData.currentLocation ?? trackingData.from ?? "—";
- 
+  const trackingEvents = tracking?.events || [];
+  const displayEvents = trackingEvents.length > 0 ? trackingEvents : [
+    { status: 'Shipment created', location: currentShipment?.senderAddress.city || '—', date: currentShipment?.createdAt || '—', completed: true, current: true }
+  ];
+
   return (
     <div className="space-y-6">
       <Breadcrumb
@@ -105,7 +114,7 @@ export default function Tracking() {
           { label: "Track Shipment" },
         ]}
       />
- 
+
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
           Track Your Shipment
@@ -113,42 +122,42 @@ export default function Tracking() {
         <p className="text-gray-600 dark:text-gray-400 mt-1">
           Real-time updates for{" "}
           <span className="font-mono font-medium text-gray-800 dark:text-gray-200">
-            {trackingData.trackingNumber ?? trackingData.id}
+            {tracking?.trackingNumber ?? trackingNumber}
           </span>
         </p>
       </div>
- 
+
       {/* Header Banner */}
       <div className="bg-blue-600 dark:bg-blue-700 rounded-2xl p-6">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <div>
             <h2 className="text-2xl font-bold text-white">
-              {trackingData.trackingNumber ?? trackingData.id}
+              {tracking?.trackingNumber ?? trackingNumber}
             </h2>
             <p className="text-sm text-blue-200 mt-1">
               Shipped via {courierName}
             </p>
           </div>
           <div className="px-4 py-2 bg-green-500 text-white rounded-lg font-medium text-sm">
-            {trackingData.status ?? "In Transit"}
+            {tracking?.status ?? "In Transit"}
           </div>
         </div>
- 
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
           <div>
             <p className="text-sm text-blue-200 mb-1">From</p>
-            <p className="font-semibold text-white">{trackingData.from}</p>
+            <p className="font-semibold text-white">{currentShipment?.senderAddress.city ?? '—'}</p>
           </div>
           <div>
             <p className="text-sm text-blue-200 mb-1">To</p>
-            <p className="font-semibold text-white">{trackingData.to}</p>
+            <p className="font-semibold text-white">{currentShipment?.receiverAddress.city ?? '—'}</p>
           </div>
           <div>
             <p className="text-sm text-blue-200 mb-1">Estimated Delivery</p>
             <p className="font-semibold text-white">{estimatedDelivery}</p>
           </div>
         </div>
- 
+
         <div>
           <div className="h-2 bg-blue-400/40 dark:bg-blue-900/60 rounded-full overflow-hidden">
             <div
@@ -162,20 +171,20 @@ export default function Tracking() {
           </p>
         </div>
       </div>
- 
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Tracking History */}
         <Card className="lg:col-span-2">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
             Tracking History
           </h3>
-          {trackingData.events.length === 0 ? (
+          {displayEvents.length === 0 ? (
             <p className="text-gray-500 dark:text-gray-400 text-sm">
               No events yet.
             </p>
           ) : (
             <div className="space-y-0">
-              {trackingData.events.map((event, index) => (
+              {displayEvents.map((event: any, index: number) => (
                 <div key={index} className="flex gap-4">
                   {/* Timeline dot + line */}
                   <div className="flex flex-col items-center">
@@ -198,11 +207,11 @@ export default function Tracking() {
                         }`}
                       />
                     </div>
-                    {index < trackingData.events.length - 1 && (
+                    {index < displayEvents.length - 1 && (
                       <div className="w-0.5 h-full bg-gray-200 dark:bg-gray-700 mt-1 mb-1 min-h-[24px]" />
                     )}
                   </div>
- 
+
                   <div className="flex-1 pb-6">
                     <h4
                       className={`font-semibold ${
@@ -219,7 +228,7 @@ export default function Tracking() {
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-500 flex items-center gap-1 mt-0.5">
                       <Clock className="w-3 h-3" />
-                      {event.date} • {event.time}
+                      {event.date}
                     </p>
                   </div>
                 </div>
@@ -227,7 +236,7 @@ export default function Tracking() {
             </div>
           )}
         </Card>
- 
+
         {/* Shipment Details */}
         <div className="space-y-5">
           <Card>
@@ -243,30 +252,20 @@ export default function Tracking() {
                   {currentLocation}
                 </span>
               </div>
-              {trackingData.weight && (
+              {currentShipment?.package.weight && (
                 <div className="flex justify-between">
                   <span className="text-gray-500 dark:text-gray-400">
                     Weight
                   </span>
                   <span className="font-medium text-gray-900 dark:text-gray-100">
-                    {trackingData.weight} kg
-                  </span>
-                </div>
-              )}
-              {trackingData.dimensions && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500 dark:text-gray-400">
-                    Dimensions
-                  </span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
-                    {trackingData.dimensions}
+                    {currentShipment.package.weight} {currentShipment.package.units}
                   </span>
                 </div>
               )}
               <div className="flex justify-between">
                 <span className="text-gray-500 dark:text-gray-400">Status</span>
                 <span className="font-medium text-green-600 dark:text-green-400">
-                  {trackingData.status ?? "Processing"}
+                  {tracking?.status ?? "Processing"}
                 </span>
               </div>
             </div>

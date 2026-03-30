@@ -1,35 +1,42 @@
-import React from "react";
-import { useNavigate, useLocation, useParams } from "react-router-dom";
-import { CheckCircle2, Package, Download, ArrowRight } from "lucide-react";
+import React, { useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { CheckCircle2, Package, Download, ArrowRight, Loader2 } from "lucide-react";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
-import toast from "react-hot-toast";
- 
+import { useAppDispatch, useAppSelector } from "../../redux/hookredux";
+import { getShipmentById } from "../../redux/thunk/shipmentThunk";
+  
 export default function PaymentSuccess() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { trackingNumber: trackingNumberParam } = useParams<{
-    trackingNumber: string;
-  }>();
+  const dispatch = useAppDispatch();
+  const { shipmentId } = useParams<{ shipmentId: string }>();
+  const { currentShipment, loading } = useAppSelector((state) => state.shipment);
  
-  // الـ state جاي من Payment page
-  const courier = location.state?.courier;
-  const shipment = location.state?.shipment;
-  const trackingNumber =
-    location.state?.trackingNumber ??
-    trackingNumberParam ??
-    localStorage.getItem("lastTrackingNumber");
- 
+  useEffect(() => {
+    if (shipmentId) {
+      dispatch(getShipmentById(shipmentId));
+    }
+  }, [dispatch, shipmentId]);
+
   const handleTrackShipment = () => {
-    if (!trackingNumber) {
-      toast.error("Tracking number not found!");
+    if (!shipmentId) {
       return;
     }
-    navigate(`/user/tracking/${trackingNumber}`, {
-      state: { courier, trackingNumber, shipment },
-    });
+    navigate(`/user/tracking/${shipmentId}`);
   };
  
+  if (loading) {
+    return (
+      <div className="min-h-[calc(100vh-12rem)] flex items-center justify-center p-4">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  const trackingNumber = currentShipment?.trackingNumber;
+  const selectedRate = currentShipment?.selectedRate;
+  const amount = selectedRate?.finalRate || 0;
+
   return (
     <div className="min-h-[calc(100vh-12rem)] flex items-center justify-center p-4">
       <div className="max-w-2xl w-full space-y-6">
@@ -60,7 +67,7 @@ export default function PaymentSuccess() {
                   Courier
                 </p>
                 <p className="font-semibold text-gray-900 dark:text-white">
-                  {courier?.name ?? shipment?.courier?.name ?? "—"}
+                  {selectedRate?.carrier ?? "—"} - {selectedRate?.service ?? ""}
                 </p>
               </div>
               <div>
@@ -68,12 +75,7 @@ export default function PaymentSuccess() {
                   Amount Paid
                 </p>
                 <p className="font-semibold text-gray-900 dark:text-white">
-                  $
-                  {courier?.price != null
-                    ? courier.price.toFixed(2)
-                    : shipment?.courier?.price != null
-                    ? shipment.courier.price.toFixed(2)
-                    : "—"}
+                  ${amount.toFixed(2)}
                 </p>
               </div>
               <div>
@@ -81,28 +83,26 @@ export default function PaymentSuccess() {
                   Estimated Delivery
                 </p>
                 <p className="font-semibold text-gray-900 dark:text-white">
-                  {courier?.deliveryTime ??
-                    shipment?.courier?.deliveryTime ??
-                    "—"}
+                  {selectedRate?.deliveryDays ? `${selectedRate.deliveryDays} days` : "—"}
                 </p>
               </div>
-              {shipment?.from && (
+              {currentShipment?.senderAddress.city && (
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                     From
                   </p>
                   <p className="font-semibold text-gray-900 dark:text-white text-sm">
-                    {shipment.from}
+                    {currentShipment.senderAddress.city}
                   </p>
                 </div>
               )}
-              {shipment?.to && (
+              {currentShipment?.receiverAddress.city && (
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                     To
                   </p>
                   <p className="font-semibold text-gray-900 dark:text-white text-sm">
-                    {shipment.to}
+                    {currentShipment.receiverAddress.city}
                   </p>
                 </div>
               )}
@@ -122,14 +122,16 @@ export default function PaymentSuccess() {
               <ArrowRight className="w-4 h-4 mr-2" />
               Go to Dashboard
             </Button>
-            <Button
-              variant="ghost"
-              className="dark:text-gray-400 dark:hover:bg-gray-700"
-              onClick={() => toast("Receipt download coming soon!")}
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Download Receipt
-            </Button>
+            {currentShipment?.labelUrl && (
+              <Button
+                variant="ghost"
+                className="dark:text-gray-400 dark:hover:bg-gray-700"
+                onClick={() => window.open(currentShipment.labelUrl, '_blank')}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download Label
+              </Button>
+            )}
           </div>
         </Card>
  

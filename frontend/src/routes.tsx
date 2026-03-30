@@ -51,7 +51,7 @@ const router = createBrowserRouter([
       { path: "newshipment", element: <NewShipment /> },
       { path: "compare/:shipmentId", element: <Compare /> },
       { path: "payment/:shipmentId", element: <Payment /> },
-      { path: "paymentSuccess/:trackingNumber", element: <PaymentSuccess /> },
+      { path: "paymentSuccess/:shipmentId", element: <PaymentSuccess /> },
       { path: "tracking/:trackingNumber", element: <TrackingPage /> },
 
       { path: "profile", element: <Profile /> },

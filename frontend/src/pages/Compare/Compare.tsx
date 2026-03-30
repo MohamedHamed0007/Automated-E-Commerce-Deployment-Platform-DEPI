@@ -1,63 +1,16 @@
-import { Check, Clock, Shield, Star, TrendingUp, Zap } from 'lucide-react';
-import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Check, Clock, Shield, Star, TrendingUp, Zap, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Badge } from '../../components/Badge';
 import { Breadcrumb } from '../../components/Breadcrumb';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
+import { useAppDispatch, useAppSelector } from '../../redux/hookredux';
+import { compareRates, selectRate } from '../../redux/thunk/shipmentThunk';
+import type { IRate } from '../../types';
+import toast from 'react-hot-toast';
 
 type BadgeType = 'fastest' | 'cheapest' | 'recommended';
-
-const couriers = [
-  {
-    id: 1,
-    name: 'DHL Express',
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/DHL_Logo.svg/200px-DHL_Logo.svg.png',
-    price: 45.99,
-    originalPrice: 52.99,
-    deliveryTime: '2-3 days',
-    rating: 4.8,
-    reviews: 1250,
-    features: ['Insurance included', 'Real-time tracking', 'Signature required'],
-    badges: ['fastest'] as BadgeType[],
-  },
-  {
-    id: 2,
-    name: 'FedEx Standard',
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/FedEx_Express.svg/200px-FedEx_Express.svg.png',
-    price: 38.5,
-    originalPrice: 42.0,
-    deliveryTime: '3-5 days',
-    rating: 4.6,
-    reviews: 980,
-    features: ['Basic tracking', 'Drop-off service', 'Package protection'],
-    badges: ['recommended'] as BadgeType[],
-  },
-  {
-    id: 3,
-    name: 'J&T Express Economy',
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/J%26T_Express_logo.svg/200px-J%26T_Express_logo.svg.png',
-    price: 32.99,
-    originalPrice: 35.99,
-    deliveryTime: '5-7 days',
-    rating: 4.3,
-    reviews: 756,
-    features: ['Budget-friendly', 'Basic tracking', 'Standard delivery'],
-    badges: ['cheapest'] as BadgeType[],
-  },
-  {
-    id: 4,
-    name: 'UPS Ground',
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/UPS_Logo_Shield_2017.svg/200px-UPS_Logo_Shield_2017.svg.png',
-    price: 41.75,
-    originalPrice: 45.5,
-    deliveryTime: '3-4 days',
-    rating: 4.7,
-    reviews: 1120,
-    features: ['Insurance up to $100', 'Tracking included', 'Reliable service'],
-    badges: [] as BadgeType[],
-  },
-];
 
 const filters = [
   { id: 'all', label: 'All Couriers' },
@@ -68,15 +21,23 @@ const filters = [
 
 export default function Compare() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const shipment = location.state?.shipment; // << لازم تبعت shipment من NewShipment أو الصفحة السابقة
+  const dispatch = useAppDispatch();
+  const { shipmentId } = useParams<{ shipmentId: string }>();
+  const { currentShipment, rates, loading, error } = useAppSelector((state) => state.shipment);
   const [selectedFilter, setSelectedFilter] = useState('all');
-  const [selectedCourier, setSelectedCourier] = useState<number | null>(null);
+  const [selectedRateId, setSelectedRateId] = useState<string | null>(null);
+  const [selectingRate, setSelectingRate] = useState(false);
 
-  if (!shipment) {
+  useEffect(() => {
+    if (shipmentId) {
+      dispatch(compareRates(shipmentId));
+    }
+  }, [dispatch, shipmentId]);
+
+  if (!shipmentId) {
     return (
       <div className="py-24 text-center">
-        <h2 className="text-xl font-semibold">No shipment data found</h2>
+        <h2 className="text-xl font-semibold">No shipment ID found</h2>
         <Button onClick={() => navigate('/user/newshipment')} className="mt-4">
           Go Back
         </Button>
@@ -84,10 +45,38 @@ export default function Compare() {
     );
   }
 
-  const handleBookNow = (courier: typeof couriers[0]) => {
-    setSelectedCourier(courier.id);
-    // تبعت shipmentId و courier للـ Payment page
-    navigate(`/user/payment/${shipment.id}`, { state: { courier, shipment } });
+  if (loading && rates.length === 0) {
+    return (
+      <div className="py-24 text-center">
+        <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+        <h2 className="text-xl font-semibold">Loading rates...</h2>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="py-24 text-center">
+        <h2 className="text-xl font-semibold text-red-600">{error}</h2>
+        <Button onClick={() => navigate('/user/newshipment')} className="mt-4">
+          Go Back
+        </Button>
+      </div>
+    );
+  }
+
+  const handleBookNow = async (rate: IRate) => {
+    if (!shipmentId) return;
+    setSelectedRateId(rate.shippoRateId);
+    setSelectingRate(true);
+    try {
+      await dispatch(selectRate({ shipmentId, shippoRateId: rate.shippoRateId })).unwrap();
+      navigate(`/user/payment/${shipmentId}`);
+    } catch (err: any) {
+      toast.error(err || 'Failed to select rate');
+    } finally {
+      setSelectingRate(false);
+    }
   };
 
   const getBadgeIcon = (badge: BadgeType) => {
@@ -99,6 +88,24 @@ export default function Compare() {
       case 'recommended':
         return <Star className="w-3 h-3" />;
     }
+  };
+
+  const sortedRates = [...rates].sort((a, b) => a.finalRate - b.finalRate);
+  const cheapestRate = sortedRates[0];
+  const fastestRate = [...rates].sort((a, b) => a.deliveryDays - b.deliveryDays)[0];
+
+  const getBadges = (rate: IRate): BadgeType[] => {
+    const badges: BadgeType[] = [];
+    if (rate.shippoRateId === cheapestRate?.shippoRateId) {
+      badges.push('cheapest');
+    }
+    if (rate.shippoRateId === fastestRate?.shippoRateId) {
+      badges.push('fastest');
+    }
+    if (badges.length === 0) {
+      badges.push('recommended');
+    }
+    return badges;
   };
 
   return (
@@ -141,14 +148,14 @@ export default function Compare() {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-300">Shipment Details</p>
               <p className="font-semibold text-gray-900 dark:text-gray-100">
-                {shipment.weight} kg • {shipment.dimensions}
+                {currentShipment?.package.weight} kg • {currentShipment?.package.length}x{currentShipment?.package.width}x{currentShipment?.package.height} {currentShipment?.package.units}
               </p>
             </div>
           </div>
           <div className="text-right">
             <p className="text-sm text-gray-600 dark:text-gray-300">Route</p>
             <p className="font-semibold text-gray-900 dark:text-gray-100">
-              {shipment.from} → {shipment.to}
+              {currentShipment?.senderAddress.city} → {currentShipment?.receiverAddress.city}
             </p>
           </div>
         </div>
@@ -173,35 +180,33 @@ export default function Compare() {
 
       {/* Comparison Cards */}
       <div className="space-y-4">
-        {couriers.map((courier) => (
+        {rates.map((rate) => (
           <Card
-            key={courier.id}
+            key={rate.shippoRateId}
             hover
             className={`transition-all duration-200 dark:bg-slate-800 ${
-              selectedCourier === courier.id ? 'ring-2 ring-blue-500 shadow-lg' : ''
+              selectedRateId === rate.shippoRateId ? 'ring-2 ring-blue-500 shadow-lg' : ''
             }`}
           >
             <div className="flex items-center gap-6">
-              {/* Logo */}
+              {/* Logo placeholder */}
               <div className="w-24 h-24 flex items-center justify-center bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shrink-0">
-                <img
-                  src={courier.logo}
-                  alt={courier.name}
-                  className="max-w-full max-h-full object-contain p-2"
-                />
+                <span className="text-lg font-bold text-gray-600 dark:text-gray-400">
+                  {rate.carrier.substring(0, 3).toUpperCase()}
+                </span>
               </div>
 
               {/* Courier Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-start gap-3 mb-2">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    {courier.name}
+                    {rate.carrier} - {rate.service}
                   </h3>
                   <div className="flex gap-2">
-                    {courier.badges.map((badge) => (
+                    {getBadges(rate).map((badge) => (
                       <Badge
                         key={badge}
-                        variant={badge as BadgeType}
+                        variant={badge}
                         className="flex items-center gap-1"
                       >
                         {getBadgeIcon(badge)}
@@ -213,43 +218,40 @@ export default function Compare() {
 
                 <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300 mb-3">
                   <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                    <span className="font-medium text-gray-900 dark:text-gray-100">{courier.rating}</span>
-                    <span>({courier.reviews} reviews)</span>
-                  </div>
-                  <div className="flex items-center gap-1">
                     <Clock className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                    <span>{courier.deliveryTime}</span>
+                    <span>{rate.deliveryDays} days</span>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  {courier.features.map((feature, index) => (
-                    <div key={index} className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300">
-                      <div className="w-5 h-5 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center shrink-0">
-                        <Check className="w-3 h-3 text-green-600 dark:text-green-400" />
-                      </div>
-                      <span>{feature}</span>
+                  <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300">
+                    <div className="w-5 h-5 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center shrink-0">
+                      <Check className="w-3 h-3 text-green-600 dark:text-green-400" />
                     </div>
-                  ))}
+                    <span>Real-time tracking</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300">
+                    <div className="w-5 h-5 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center shrink-0">
+                      <Check className="w-3 h-3 text-green-600 dark:text-green-400" />
+                    </div>
+                    <span>Insurance included</span>
+                  </div>
                 </div>
               </div>
 
               {/* Price & Action */}
               <div className="text-right shrink-0">
                 <div className="mb-2">
-                  <p className="text-sm text-gray-500 dark:text-gray-400 line-through">${courier.originalPrice}</p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">${courier.price}</p>
-                  <p className="text-sm text-green-600 dark:text-green-400 font-medium">
-                    Save ${(courier.originalPrice - courier.price).toFixed(2)}
-                  </p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">${rate.finalRate.toFixed(2)}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{rate.currency}</p>
                 </div>
                 <Button
                   className="w-full min-w-35"
-                  onClick={() => handleBookNow(courier)}
-                  variant={selectedCourier === courier.id ? 'success' : 'primary'}
+                  onClick={() => handleBookNow(rate)}
+                  variant={selectedRateId === rate.shippoRateId ? 'success' : 'primary'}
+                  loading={selectingRate && selectedRateId === rate.shippoRateId}
                 >
-                  {selectedCourier === courier.id ? (
+                  {selectedRateId === rate.shippoRateId ? (
                     <>
                       <Check className="w-4 h-4" />
                       Selected

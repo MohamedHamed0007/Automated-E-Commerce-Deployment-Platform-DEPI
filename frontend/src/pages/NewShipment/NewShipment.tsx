@@ -9,6 +9,8 @@ import { Select } from '../../components/Select/Select';
 import { StepProgress } from '../../components/StepProgress/StepProgress';
 import toast from 'react-hot-toast';
 import { useNavigate } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from '../../redux/hookredux';
+import { createShipment } from '../../redux/thunk/shipmentThunk';
 
 const steps = [
   { label: 'Package Details', description: 'Size & weight' },
@@ -31,6 +33,9 @@ const weightUnits = [
 
 export default function NewShipment() {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { loading } = useAppSelector((state) => state.shipment);
+  const user = useAppSelector((state) => state.auth.user);
 
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({
@@ -47,8 +52,10 @@ export default function NewShipment() {
     senderCity: '',
     senderState: '',
     senderZip: '',
+    senderEmail: '',
     receiverName: '',
     receiverPhone: '',
+    receiverEmail: '',
     receiverAddress: '',
     receiverCity: '',
     receiverState: '',
@@ -66,20 +73,20 @@ export default function NewShipment() {
         formData.senderName.trim() &&
         formData.senderPhone.trim() &&
         formData.senderAddress.trim() &&
+        formData.senderCity.trim() &&
+        formData.senderState.trim() &&
+        formData.senderZip.trim() &&
         formData.receiverName.trim() &&
         formData.receiverPhone.trim() &&
-        formData.receiverAddress.trim()
+        formData.receiverAddress.trim() &&
+        formData.receiverCity.trim() &&
+        formData.receiverState.trim() &&
+        formData.receiverZip.trim()
       );
     return true;
   };
 
-  const generateShipmentId = () => {
-    const year = new Date().getFullYear();
-    const num = Math.floor(Math.random() * 900) + 100;
-    return `SH-${year}-${num}`;
-  };
-
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!canProceed()) {
       toast.error('Please fill all required fields in this step.', {
         duration: 4000,
@@ -91,32 +98,42 @@ export default function NewShipment() {
     if (currentStep < steps.length - 1) {
       setCurrentStep((s) => s + 1);
     } else {
-      const shipmentId = generateShipmentId();
-
       const shipmentData = {
-        id: shipmentId,
-        status: 'pending',
-        courier: 'Pending',
-        from: formData.senderCity,
-        to: formData.receiverCity,
-        estimatedDelivery: 'TBD',
-        currentLocation: formData.senderCity,
-        progress: 10,
-        events: [
-          {
-            status: 'Shipment created',
-            location: formData.senderCity,
-            date: new Date().toLocaleDateString(),
-            time: new Date().toLocaleTimeString(),
-            completed: true,
-            current: true,
-          },
-        ],
-        details: formData, 
+        package: {
+          length: parseFloat(formData.length) || 0,
+          width: parseFloat(formData.width) || 0,
+          height: parseFloat(formData.height) || 0,
+          units: 'cm' as const,
+          weight: parseFloat(formData.weight) || 0,
+        },
+        senderAddress: {
+          name: formData.senderName,
+          phone: formData.senderPhone,
+          email: formData.senderEmail || user?.email || '',
+          street: formData.senderAddress,
+          city: formData.senderCity,
+          state: formData.senderState,
+          zip: formData.senderZip,
+          country: 'US',
+        },
+        receiverAddress: {
+          name: formData.receiverName,
+          phone: formData.receiverPhone,
+          email: formData.receiverEmail,
+          street: formData.receiverAddress,
+          city: formData.receiverCity,
+          state: formData.receiverState,
+          zip: formData.receiverZip,
+          country: 'US',
+        },
       };
 
-      localStorage.setItem(shipmentId, JSON.stringify(shipmentData));
-      navigate(`/user/compare/${shipmentData.id}`, { state: { shipment: shipmentData } });
+      try {
+        const result = await dispatch(createShipment(shipmentData)).unwrap();
+        navigate(`/user/compare/${result._id}`);
+      } catch (error: any) {
+        toast.error(error || 'Failed to create shipment');
+      }
     }
   };
 
@@ -250,13 +267,23 @@ export default function NewShipment() {
                   label="Full Name"
                   placeholder="John Doe"
                   value={formData.senderName}
-                  onChange={(e) => update('senderName', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => update('senderName', e.target.value)}
                 />
                 <Input
                   label="Phone Number"
                   placeholder="+1 234 567 890"
                   value={formData.senderPhone}
-                  onChange={(e) => update('senderPhone', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => update('senderPhone', e.target.value)}
+                />
+              </div>
+
+              <div className="mt-4">
+                <Input
+                  type="email"
+                  label="Email"
+                  placeholder="john@example.com"
+                  value={formData.senderEmail || user?.email || ''}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => update('senderEmail', e.target.value)}
                 />
               </div>
 
@@ -265,7 +292,7 @@ export default function NewShipment() {
                   label="Street Address"
                   placeholder="123 Main St"
                   value={formData.senderAddress}
-                  onChange={(e) => update('senderAddress', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => update('senderAddress', e.target.value)}
                 />
               </div>
 
@@ -314,13 +341,24 @@ export default function NewShipment() {
                   label="Full Name"
                   placeholder="Jane Smith"
                   value={formData.receiverName}
-                  onChange={(e) => update('receiverName', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => update('receiverName', e.target.value)}
                 />
                 <Input
                   label="Phone Number"
                   placeholder="+44 20 1234 5678"
                   value={formData.receiverPhone}
-                  onChange={(e) => update('receiverPhone', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => update('receiverPhone', e.target.value)}
+                />
+              </div>
+
+              <div className="mt-4">
+                <Input
+                  type="email"
+                  label="Email"
+                  placeholder="jane@example.com"
+                  value={formData.receiverEmail}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => update('receiverEmail', e.target.value)}
+                  required
                 />
               </div>
 
@@ -329,7 +367,7 @@ export default function NewShipment() {
                   label="Street Address"
                   placeholder="456 Baker St"
                   value={formData.receiverAddress}
-                  onChange={(e) => update('receiverAddress', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => update('receiverAddress', e.target.value)}
                 />
               </div>
 

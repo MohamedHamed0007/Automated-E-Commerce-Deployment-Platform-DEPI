@@ -9,6 +9,7 @@ import {
   Wallet
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import {
@@ -22,6 +23,8 @@ import {
 } from 'recharts';
 import { Badge } from '../../components/Badge';
 import { Breadcrumb } from '../../components/Breadcrumb';
+import { useAppDispatch, useAppSelector } from '../../redux/hookredux';
+import { getUserShipments } from '../../redux/thunk/shipmentThunk';
 
 const stats = [
   {
@@ -78,40 +81,74 @@ const barColor = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { shipments } = useAppSelector((state) => state.shipment);
 
-  const lastTrackingNumber = localStorage.getItem('lastTrackingNumber');
-  const lastShipmentId = localStorage.getItem('lastShipmentId');
+  useEffect(() => {
+    dispatch(getUserShipments());
+  }, [dispatch]);
+
+  const bookedShipments = shipments.filter((s) => s.status === 'booked');
+  const lastShipment = shipments[0];
+  const lastTrackingNumber = lastShipment?.trackingNumber;
 
   const handleTrack = () => {
-    lastTrackingNumber
-      ? navigate(`/user/tracking/${lastTrackingNumber}`)
+    lastShipment
+      ? navigate(`/user/tracking/${lastShipment._id}`)
       : navigate('/user/history');
   };
 
   const handleCompare = () => {
-    lastShipmentId ? navigate(`/user/compare/${lastShipmentId}`) : navigate('/user/newshipment');
+    lastShipment && lastShipment.status === 'draft'
+      ? navigate(`/user/compare/${lastShipment._id}`)
+      : navigate('/user/newshipment');
   };
 
-  const recentShipments = Object.keys(localStorage)
-    .filter((k) => k.startsWith('SH-'))
-    .sort()
-    .slice(-4)
-    .reverse()
-    .map((k) => {
-      try {
-        return JSON.parse(localStorage.getItem(k) || '');
-      } catch {
-        return null;
-      }
-    })
-    .filter(Boolean);
+  const recentShipments = [...shipments]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 4);
 
   const getStatusVariant = (status: string): 'warning' | 'info' | 'success' => {
     const s = status?.toLowerCase();
-    if (['delivered', 'success'].includes(s)) return 'success';
-    if (['in transit', 'in_transit', 'info'].includes(s)) return 'info';
+    if (['booked', 'delivered', 'success'].includes(s)) return 'success';
+    if (['compared', 'in transit', 'in_transit'].includes(s)) return 'info';
     return 'warning';
   };
+
+  const stats = [
+    {
+      label: 'Total Shipments',
+      value: shipments.length.toString(),
+      change: '+12%',
+      trend: 'up',
+      icon: Package,
+      color: 'blue'
+    },
+    {
+      label: 'Active Shipments',
+      value: bookedShipments.length.toString(),
+      change: `${bookedShipments.length} booked`,
+      trend: 'neutral',
+      icon: TruckIcon,
+      color: 'teal'
+    },
+    {
+      label: 'Total Savings',
+      value: '$2,450',
+      change: '+18%',
+      trend: 'up',
+      icon: DollarSign,
+      color: 'green'
+    },
+    {
+      label: 'Wallet Balance',
+      value: '$850.00',
+      change: 'Add funds',
+      trend: 'neutral',
+      icon: Wallet,
+      color: 'purple'
+    }
+  ];
 
   return (
     <div className="space-y-6 container mx-auto p-4 lg:p-0">
@@ -284,22 +321,22 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-slate-700">
-                {recentShipments.map((s: any) => (
+                {recentShipments.map((s) => (
                   <tr
-                    key={s.trackingNumber}
+                    key={s._id}
                     className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors"
                   >
                     <td className="py-4 text-sm font-mono font-medium text-blue-600 dark:text-blue-400">
-                      {s.trackingNumber}
+                      {s.trackingNumber || s._id}
                     </td>
                     <td className="py-4">
                       <div className="text-sm font-medium text-slate-900 dark:text-white">
-                        {s.from}
+                        {s.senderAddress.city}
                       </div>
-                      <div className="text-xs text-slate-400">to {s.to}</div>
+                      <div className="text-xs text-slate-400">to {s.receiverAddress.city}</div>
                     </td>
                     <td className="py-4 text-sm text-slate-600 dark:text-slate-300">
-                      {typeof s.courier === 'object' ? s.courier.name : s.courier}
+                      {s.selectedRate ? `${s.selectedRate.carrier} - ${s.selectedRate.service}` : '—'}
                     </td>
                     <td className="py-4">
                       <Badge variant={getStatusVariant(s.status)}>{s.status}</Badge>
@@ -308,9 +345,7 @@ export default function Dashboard() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() =>
-                          navigate(`/user/tracking/${s.trackingNumber}`, { state: { shipment: s } })
-                        }
+                        onClick={() => navigate(`/user/tracking/${s._id}`)}
                       >
                         Details
                       </Button>

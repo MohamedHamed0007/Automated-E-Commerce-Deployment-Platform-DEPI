@@ -1,142 +1,88 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Filter, Download, Eye, Package } from "lucide-react";
+import { Filter, Download, Eye, Package, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "../../components/Card";
 import { Button } from "../../components/Button";
 import { Breadcrumb } from "../../components/Breadcrumb";
 import { Badge } from "../../components/Badge";
- 
-type ShipmentStatus = "Processing" | "In Transit" | "Delivered" | "Pending";
- 
-interface StoredShipment {
-  id: string;
-  trackingNumber: string;
-  courier: { name: string; price: number; deliveryTime: string } | string;
-  from: string;
-  to: string;
-  weight?: string | number;
-  dimensions?: string;
-  status: ShipmentStatus | string;
-  progress: number;
-  currentLocation?: string;
-  estimatedDelivery?: string;
-  events: {
-    status: string;
-    location: string;
-    date: string;
-    time: string;
-    completed: boolean;
-    current: boolean;
-  }[];
-  details?: Record<string, unknown>;
-}
+import { useAppDispatch, useAppSelector } from "../../redux/hookredux";
+import { getUserShipments } from "../../redux/thunk/shipmentThunk";
+import type { IShipment } from "../../types";
  
 const statusConfig: Record<
   string,
   { label: string; variant: "warning" | "info" | "success" | "default" }
 > = {
-  Processing: { label: "Processing", variant: "warning" },
-  Pending: { label: "Pending", variant: "warning" },
-  "In Transit": { label: "In Transit", variant: "info" },
-  Delivered: { label: "Delivered", variant: "success" },
+  draft: { label: "Draft", variant: "warning" },
+  compared: { label: "Compared", variant: "info" },
+  booked: { label: "Booked", variant: "success" },
+  cancelled: { label: "Cancelled", variant: "default" },
 };
  
 const ITEMS_PER_PAGE = 8;
  
-// جلب كل الشحنات المحفوظة في localStorage
-function loadShipmentsFromStorage(): StoredShipment[] {
-  const shipments: StoredShipment[] = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (!key?.startsWith("SH-")) continue;
-    try {
-      const parsed = JSON.parse(localStorage.getItem(key) ?? "");
-      if (parsed && parsed.trackingNumber) {
-        shipments.push(parsed as StoredShipment);
-      }
-    } catch {
-      // skip malformed entries
-    }
-  }
-  // ترتيب من الأحدث للأقدم
-  return shipments.reverse();
+function getCourierName(shipment: IShipment): string {
+  if (!shipment.selectedRate) return "—";
+  return `${shipment.selectedRate.carrier} - ${shipment.selectedRate.service}`;
 }
  
-function getCourierName(
-  courier: StoredShipment["courier"] | undefined
-): string {
-  if (!courier) return "—";
-  return typeof courier === "object" ? courier.name : courier;
-}
- 
-function getCourierPrice(
-  courier: StoredShipment["courier"] | undefined
-): number {
-  if (!courier) return 0;
-  return typeof courier === "object" ? courier.price : 0;
+function getCourierPrice(shipment: IShipment): number {
+  if (!shipment.selectedRate) return 0;
+  return shipment.selectedRate.finalRate;
 }
  
 export default function History() {
   const navigate = useNavigate();
-  const [shipments, setShipments] = useState<StoredShipment[]>([]);
+  const dispatch = useAppDispatch();
+  const { shipments, loading } = useAppSelector((state) => state.shipment);
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
  
   useEffect(() => {
-    setShipments(loadShipmentsFromStorage());
-  }, []);
+    dispatch(getUserShipments());
+  }, [dispatch]);
  
-  // stats محسوبة من البيانات الحقيقية
   const stats = useMemo(() => {
     const total = shipments.length;
     const delivered = shipments.filter(
-      (s) => s.status === "Delivered"
+      (s) => s.status === "booked"
     ).length;
     const inTransit = shipments.filter(
-      (s) => s.status === "In Transit"
+      (s) => s.status === "booked"
     ).length;
     const totalSpent = shipments.reduce(
-      (sum, s) => sum + getCourierPrice(s.courier),
+      (sum, s) => sum + getCourierPrice(s),
       0
     );
     return { total, delivered, inTransit, totalSpent };
   }, [shipments]);
  
-  // فلترة
   const filtered = useMemo(() => {
     if (statusFilter === "All") return shipments;
-    return shipments.filter((s) => s.status === statusFilter);
+    return shipments.filter((s) => s.status === statusFilter.toLowerCase());
   }, [shipments, statusFilter]);
  
-  // pagination
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const paginated = filtered.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
  
-  const handleViewShipment = (shipment: StoredShipment) => {
-    navigate(`/user/tracking/${shipment.trackingNumber}`, {
-      state: {
-        shipment,
-        courier:
-          typeof shipment.courier === "object" ? shipment.courier : undefined,
-        trackingNumber: shipment.trackingNumber,
-      },
-    });
+  const handleViewShipment = (shipment: IShipment) => {
+    navigate(`/user/tracking/${shipment._id}`);
   };
  
   const handleExport = () => {
     const rows = [
       ["Tracking ID", "From", "To", "Courier", "Status", "Price"],
-      ...shipments.map((s) => [
-        s.trackingNumber,
-        s.from,
-        s.to,
-        getCourierName(s.courier),
+      ...filtered.map((s) => [
+        s.trackingNumber || s._id,
+        s.senderAddress.city,
+        s.receiverAddress.city,
+        getCourierName(s),
         s.status,
-        `$${getCourierPrice(s.courier).toFixed(2)}`,
+        `$${getCourierPrice(s).toFixed(2)}`,
       ]),
     ];
     const csv = rows.map((r) => r.join(",")).join("\n");
@@ -149,7 +95,7 @@ export default function History() {
     URL.revokeObjectURL(url);
   };
  
-  const statusOptions = ["All", "Processing", "Pending", "In Transit", "Delivered"];
+  const statusOptions = ["All", "Draft", "Compared", "Booked", "Cancelled"];
  
   return (
     <div className="space-y-6 mx-auto container text-gray-900 dark:text-gray-100">
@@ -253,8 +199,11 @@ export default function History() {
  
       {/* Table */}
       <Card>
-        {shipments.length === 0 ? (
-          // Empty state
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin mb-4 text-blue-600" />
+          </div>
+        ) : shipments.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
               <Package className="w-8 h-8 text-gray-400" />
@@ -295,41 +244,36 @@ export default function History() {
                 <tbody>
                   {paginated.map((shipment) => (
                     <tr
-                      key={shipment.trackingNumber}
+                      key={shipment._id}
                       className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200"
                     >
-                      {/* Tracking ID */}
                       <td className="py-4 px-4">
                         <p className="font-mono font-medium text-gray-900 dark:text-white text-xs">
-                          {shipment.trackingNumber}
+                          {shipment.trackingNumber || shipment._id}
                         </p>
                       </td>
- 
-                      {/* Route */}
+  
                       <td className="py-4 px-4">
                         <p className="text-gray-900 dark:text-gray-200">
-                          {shipment.from}
+                          {shipment.senderAddress.city}
                         </p>
                         <p className="text-gray-500 dark:text-gray-400">
-                          → {shipment.to}
+                          → {shipment.receiverAddress.city}
                         </p>
                       </td>
- 
-                      {/* Courier */}
+  
                       <td className="py-4 px-4">
                         <span className="text-gray-900 dark:text-gray-200">
-                          {getCourierName(shipment.courier)}
+                          {getCourierName(shipment)}
                         </span>
                       </td>
- 
-                      {/* Price */}
+  
                       <td className="py-4 px-4">
                         <span className="font-semibold text-gray-900 dark:text-white">
-                          ${getCourierPrice(shipment.courier).toFixed(2)}
+                          ${getCourierPrice(shipment).toFixed(2)}
                         </span>
                       </td>
- 
-                      {/* Status */}
+  
                       <td className="py-4 px-4">
                         <Badge
                           variant={
@@ -340,8 +284,7 @@ export default function History() {
                             shipment.status}
                         </Badge>
                       </td>
- 
-                      {/* Actions */}
+  
                       <td className="py-4 px-4">
                         <Button
                           variant="ghost"

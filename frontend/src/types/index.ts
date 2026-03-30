@@ -63,3 +63,82 @@ export interface User {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface IPackage {
+  length: number;
+  width: number;
+  height: number;
+  units: 'cm' | 'in';
+  weight: number;
+}
+
+export interface IShipmentAddress {
+  name: string;
+  phone: string;
+  email: string;
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+}
+
+export interface IRate {
+  carrier: string;
+  service: string;
+  finalRate: number;
+  currency: string;
+  deliveryDays: number;
+  shippoRateId: string;
+}
+
+export interface IShipment {
+  _id: string;
+  userId: string;
+  package: IPackage;
+  senderAddress: IShipmentAddress;
+  receiverAddress: IShipmentAddress;
+  comparisonResults: IRate[];
+  shippoShipmentId?: string | null;
+  selectedRate?: IRate | null;
+  status: 'draft' | 'compared' | 'booked' | 'cancelled';
+  paidOn?: string;
+  trackingNumber?: string;
+  trackingUrl?: string;
+  labelUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ITrackingEvent {
+  status: string;
+  location: string;
+  date: string;
+}
+
+export interface ITrackingResult {
+  status: string;
+  statusDetails: string;
+  carrier: string;
+  trackingNumber: string;
+  trackingUrl: string;
+  events: ITrackingEvent[];
+}
+
+export interface IPayment {
+  _id: string;
+  shipmentId: string;
+  userId: string;
+  amount: number;
+  currency: string;
+  status: 'pending' | 'succeeded' | 'failed';
+  stripePaymentIntentId?: string;
+  paidAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreatePaymentResponse {
+  clientSecret: string;
+  payment: IPayment;
+}
