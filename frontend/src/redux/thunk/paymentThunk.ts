@@ -9,7 +9,7 @@ export const createPaymentIntent = createAsyncThunk<
 >('payment/createPaymentIntent', async (shipmentId, { rejectWithValue }) => {
   try {
     const response = await axiosInstance.post('/payments', { shipmentId });
-    return response.data.data;
+    return response.data;
   } catch (error: any) {
     const message = error.response?.data?.message || 'Failed to create payment';
     return rejectWithValue(message);
@@ -18,12 +18,12 @@ export const createPaymentIntent = createAsyncThunk<
 
 export const confirmPayment = createAsyncThunk<
   { success: boolean },
-  string,
+  { paymentIntentId: string; returnUrl: string },
   { rejectValue: string }
->('payment/confirmPayment', async (paymentId, { rejectWithValue }) => {
+>('payment/confirmPayment', async ({ paymentIntentId, returnUrl }, { rejectWithValue }) => {
   try {
-    const response = await axiosInstance.post('/payments/confirm', { paymentId });
-    return response.data.data;
+    const response = await axiosInstance.post('/payments/confirm', { paymentIntentId, returnUrl });
+    return response.data;
   } catch (error: any) {
     const message = error.response?.data?.message || 'Failed to confirm payment';
     return rejectWithValue(message);

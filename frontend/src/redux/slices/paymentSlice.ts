@@ -1,17 +1,18 @@
 import { createSlice } from '@reduxjs/toolkit';
-import type { IPayment } from '../../types';
 import { createPaymentIntent, confirmPayment } from '../thunk/paymentThunk';
 
 interface PaymentState {
   clientSecret: string | null;
-  payment: IPayment | null;
+  paymentId: string | null;
+  paymentIntentId: string | null;
   loading: boolean;
   error: string | null;
 }
 
 const initialState: PaymentState = {
   clientSecret: null,
-  payment: null,
+  paymentId: null,
+  paymentIntentId: null,
   loading: false,
   error: null,
 };
@@ -22,7 +23,8 @@ const paymentSlice = createSlice({
   reducers: {
     clearPayment: (state) => {
       state.clientSecret = null;
-      state.payment = null;
+      state.paymentId = null;
+      state.paymentIntentId = null;
       state.error = null;
     },
   },
@@ -35,7 +37,8 @@ const paymentSlice = createSlice({
       .addCase(createPaymentIntent.fulfilled, (state, action) => {
         state.loading = false;
         state.clientSecret = action.payload.clientSecret;
-        state.payment = action.payload.payment;
+        state.paymentId = action.payload.paymentId;
+        state.paymentIntentId = action.payload.paymenyIntentId;
       })
       .addCase(createPaymentIntent.rejected, (state, action) => {
         state.loading = false;

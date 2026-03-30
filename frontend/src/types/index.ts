@@ -140,5 +140,6 @@ export interface IPayment {
 
 export interface CreatePaymentResponse {
   clientSecret: string;
-  payment: IPayment;
+  paymentId: string;
+  paymenyIntentId: string;
 }

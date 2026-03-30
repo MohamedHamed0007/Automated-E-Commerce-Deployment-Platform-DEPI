@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
-import Shipments from "../../config/DB/Models/Shipment/Shipment.models";
+import Shipment from "../../config/DB/Models/Shipment/Shipment.models";
 import { createPaymentIntentForShipment } from "../../Services/payment/payment.service";
-import { successResponse } from "../../utils/Response/api.response.utils";
+import { stripe } from "../../config/Payment/stripe";
 
 // Create Payment
 export const createPaymentController = async (req: Request, res: Response) => {
@@ -22,7 +22,7 @@ export const createPaymentController = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid shipmentId" });
     }
 
-    const shipment = await Shipments.findOne({
+    const shipment = await Shipment.findOne({
       _id: shipmentId,
       userId,
     });
@@ -40,10 +40,6 @@ export const createPaymentController = async (req: Request, res: Response) => {
     const amount = shipment.selectedRate.finalRate;
     const currency = shipment.selectedRate.currency;
 
-    if (amount <= 0) {
-      return res.status(400).json({ message: "Invalid amount" });
-    }
-
     const result = await createPaymentIntentForShipment({
       shipmentId,
       userId,
@@ -51,15 +47,11 @@ export const createPaymentController = async (req: Request, res: Response) => {
       currency,
     });
 
-    return successResponse(
-      res,
-      "Payment intent created",
-      {
-        clientSecret: result.clientSecret,
-        payment: result.payment,
-      },
-      201
-    );
+    return res.status(201).json({
+      clientSecret: result.clientSecret,
+      paymentId: result.payment._id,
+      paymenyIntentId: result.payment.stripePaymentIntentId,
+    });
   } catch (error: any) {
     return res.status(500).json({
       message: "Failed to create payment intent",
@@ -68,16 +60,28 @@ export const createPaymentController = async (req: Request, res: Response) => {
   }
 };
 
-// Confirm Payment - Stripe Elements handles this client-side now
+// Confirm Payment
 export const confirmPaymentController = async (req: Request, res: Response) => {
   try {
-    const { paymentIntentId } = req.body;
+    const { paymentIntentId, returnUrl } = req.body;
 
     if (!paymentIntentId) {
       return res.status(400).json({ message: "paymentIntentId is required" });
     }
 
-    return successResponse(res, "Payment confirmation endpoint ready", { status: "pending" }, 200);
+    if (!returnUrl) {
+      return res.status(400).json({ message: "returnUrl is required" });
+    }
+
+    const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, {
+      return_url: returnUrl,
+      payment_method: "pm_card_visa",
+    });
+
+    return res.json({
+      message: "Payment confirmed",
+      status: paymentIntent.status,
+    });
   } catch (error: any) {
     return res.status(500).json({
       message: "Failed to confirm payment",
