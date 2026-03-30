@@ -33,11 +33,15 @@ export const getShipmentById = asyncHandler(
 
 export const compareRates = asyncHandler(
   async (req: Request, res: Response) => {
-    const rates = await shipmentService.compareRates(
+    await shipmentService.compareRates(
       req.params.id,
       req.user!.userId
     );
-    return successResponse(res, "Rates compared successfully", { rates }, 200);
+    const shipment = await shipmentService.getShipmentById(
+      req.params.id,
+      req.user!.userId
+    );
+    return successResponse(res, "Rates compared successfully", shipment, 200);
   }
 );
 

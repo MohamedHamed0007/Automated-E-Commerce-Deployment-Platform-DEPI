@@ -25,6 +25,6 @@ shipmentRouter.post(
   validateBody(selectRateSchema),
   selectRate
 );
-shipmentRouter.get("/:id/track", getTracking);
+shipmentRouter.get("/:id/track", validateObjectId("id"), getTracking);
 
 export default shipmentRouter;
