@@ -12,7 +12,6 @@ const schema = z
   .object({
     fullName: z.string().min(2, 'Name must be at least 2 characters'),
     email: z.string().email('Invalid email address'),
-    // التعديل هنا ليتوافق مع الباك اند
     password: z
       .string()
       .min(8, 'Password must be at least 8 characters')
@@ -103,86 +102,106 @@ const Signup = () => {
       </div>
 
       {/* RIGHT PANEL */}
-      <div className="flex items-center justify-center px-8 lg:px-16 py-12 overflow-y-auto">
-        <div className="w-full max-w-[460px] bg-white/60 dark:bg-slate-900/50 backdrop-blur-xl border border-slate-200/60 dark:border-slate-700/40 rounded-2xl shadow-2xl p-10 animate-fadeIn">
+      <div className="flex items-center justify-center px-4 lg:px-8 py-8 overflow-y-auto min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-800">
+        <div className="w-full max-w-md bg-white/80 dark:bg-slate-900/70 backdrop-blur-xl border border-slate-200/40 dark:border-slate-700/50 rounded-3xl shadow-2xl p-6 animate-fadeIn">
           {/* Header */}
-          <header className="mb-10 text-center lg:text-left">
-            <h2 className="text-4xl font-black tracking-tight">Create Account</h2>
-            <p className="text-slate-600 dark:text-slate-400 mt-2 font-medium">
+          <header className="mb-6 text-center lg:text-left">
+            <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+              Create Account
+            </h2>
+            <p className="text-slate-600 dark:text-slate-400 mt-1 font-medium text-sm">
               Join thousands of businesses globally.
             </p>
           </header>
 
           {/* FORM */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            {/* FULLNAME */}
-            <div>
-              <label className="label">Full Name</label>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* Full Name */}
+            <div className="flex flex-col">
+              <label className="label text-sm font-medium text-slate-700 dark:text-slate-300">
+                Full Name
+              </label>
               <input
                 {...register('fullName')}
                 placeholder="Ex: John Doe"
-                className={`input ${errors.fullName && 'input-error'}`}
+                className={`input mt-1 p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${errors.fullName && 'border-red-500 focus:ring-red-400'}`}
               />
-              {errors.fullName && <p className="error-text">{errors.fullName.message}</p>}
+              {errors.fullName && (
+                <p className="error-text mt-1 text-xs">{errors.fullName.message}</p>
+              )}
             </div>
 
-            {/* EMAIL */}
-            <div>
-              <label className="label">Work Email</label>
+            {/* Email */}
+            <div className="flex flex-col">
+              <label className="label text-sm font-medium text-slate-700 dark:text-slate-300">
+                Work Email
+              </label>
               <input
                 {...register('email')}
                 type="email"
                 placeholder="name@company.com"
-                className={`input ${errors.email && 'input-error'}`}
+                className={`input mt-1 p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${errors.email && 'border-red-500 focus:ring-red-400'}`}
               />
-              {errors.email && <p className="error-text">{errors.email.message}</p>}
+              {errors.email && <p className="error-text mt-1 text-xs">{errors.email.message}</p>}
             </div>
 
-            {/* PASSWORDS */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div>
-                <label className="label">Password</label>
+            {/* Passwords */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col">
+                <label className="label text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Password
+                </label>
                 <input
                   type="password"
                   {...register('password')}
-                  className={`input ${errors.password && 'input-error'}`}
+                  className={`input mt-1 p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${errors.password && 'border-red-500 focus:ring-red-400'}`}
                 />
               </div>
-              <div>
-                <label className="label">Confirm</label>
+              <div className="flex flex-col">
+                <label className="label text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Confirm
+                </label>
                 <input
                   type="password"
                   {...register('confirmPassword')}
-                  className={`input ${errors.confirmPassword && 'input-error'}`}
+                  className={`input mt-1 p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${errors.confirmPassword && 'border-red-500 focus:ring-red-400'}`}
                 />
               </div>
             </div>
 
             {(errors.password || errors.confirmPassword) && (
-              <p className="error-text">
+              <p className="error-text text-xs">
                 {errors.password?.message || errors.confirmPassword?.message}
               </p>
             )}
 
-            {/* TERMS */}
-            <div className="flex items-start gap-3 py-2">
-              <input type="checkbox" {...register('terms')} className="checkbox" />
+            {/* Terms */}
+            <div className="flex items-start gap-2 py-1">
+              <input
+                type="checkbox"
+                {...register('terms')}
+                className="checkbox mt-1 accent-blue-500"
+              />
               <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
                 I agree to the{' '}
-                <span className="text-blue-600 dark:text-blue-300 underline cursor-pointer">
+                <span className="text-blue-600 dark:text-blue-300 underline cursor-pointer hover:text-blue-700 dark:hover:text-blue-400 transition-colors">
                   Terms
                 </span>{' '}
                 and{' '}
-                <span className="text-blue-600 dark:text-blue-300 underline cursor-pointer">
+                <span className="text-blue-600 dark:text-blue-300 underline cursor-pointer hover:text-blue-700 dark:hover:text-blue-400 transition-colors">
                   Privacy Policy
                 </span>
                 .
               </label>
             </div>
-            {errors.terms && <p className="error-text">{errors.terms.message}</p>}
+            {errors.terms && <p className="error-text text-xs">{errors.terms.message}</p>}
 
-            {/* BUTTON */}
-            <button type="submit" disabled={!isValid || loading} className="btn-primary">
+            {/* Button */}
+            <button
+              type="submit"
+              disabled={!isValid || loading}
+              className="btn-primary w-full py-2.5 rounded-xl font-semibold text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               {loading ? (
                 <div className="loader"></div>
               ) : (
@@ -192,11 +211,12 @@ const Signup = () => {
               )}
             </button>
 
-            <p className="text-center text-sm font-medium text-slate-500 dark:text-slate-400 pt-6">
+            {/* Login Link */}
+            <p className="text-center text-xs font-medium text-slate-500 dark:text-slate-400 pt-4">
               Already a member?{' '}
               <Link
                 to="/login"
-                className="text-blue-600 dark:text-blue-400 underline font-semibold"
+                className="text-blue-600 dark:text-blue-400 underline font-semibold hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
               >
                 Sign In
               </Link>
