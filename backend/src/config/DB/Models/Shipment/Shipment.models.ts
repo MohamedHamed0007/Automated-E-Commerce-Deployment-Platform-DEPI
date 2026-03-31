@@ -1,12 +1,15 @@
-import { IAddress, IRate, IShipment } from "@/types/Shipment/shipment.mongoose.types";
+import {
+  IAddress,
+  IRate,
+  IShipment,
+} from "@/types/Shipment/shipment.mongoose.types";
 import mongoose, { Document, Schema } from "mongoose";
-
 
 const AddressSchema = new Schema<IAddress>(
   {
     name: { type: String, required: true },
-    phone: { type: String, required: true }, 
-    email: { type: String, required: true }, 
+    phone: { type: String, required: true },
+    email: { type: String, required: true },
     street: { type: String, required: true },
     city: { type: String, required: true },
     state: { type: String, required: true },
@@ -49,7 +52,7 @@ const ShipmentSchema = new Schema<IShipment>(
       default: "draft",
     },
     paidOn: { type: Date, default: null },
-    trackingNumber: { type: String, default: null },
+    trackingNumber: { type: String, index: { unique: true, sparse: true } },
     trackingUrl: { type: String, default: null },
     labelUrl: { type: String, default: null },
   },
