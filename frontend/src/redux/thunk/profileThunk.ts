@@ -3,7 +3,7 @@ import axiosInstance from "../../api/axiosInstance";
 
 export const getProfile = createAsyncThunk('auth/getProfile', async (_, { rejectWithValue }) => {
   try {
-    const response = await axiosInstance.get('/auth/profile');
+    const response = await axiosInstance.get('/user/profile');
     return response.data.data;
   } catch (error: any) {
     return rejectWithValue(error.response?.data?.message || 'Failed to fetch profile');

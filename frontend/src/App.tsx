@@ -1,14 +1,15 @@
 import { RouterProvider } from 'react-router-dom';
 import router from './routes';
 import { useAppSelector, useAppDispatch } from './redux/hookredux';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { getProfile } from './redux/thunk/profileThunk';
 
 function App() {
   const theme = useAppSelector((state) => state.theme.theme);
-  const { token } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
+
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -18,11 +19,34 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('token') || token;
-    if (savedToken) {
-      dispatch(getProfile());
-    }
+    const initializeAuth = async () => {
+      try {
+        await dispatch(getProfile()).unwrap();
+        console.log('Auth initialized: User logged in');
+      } catch (error) {
+        console.warn('Auth initialized: No active session.');
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    initializeAuth();
   }, [dispatch]);
+
+  if (isInitializing) {
+    return (
+      <div
+        className={`h-screen w-full flex items-center justify-center ${
+          theme === 'dark' ? 'bg-gray-900' : 'bg-white'
+        }`}
+      >
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <p className={theme === 'dark' ? 'text-white' : 'text-gray-600'}>Loading ShipSphere...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

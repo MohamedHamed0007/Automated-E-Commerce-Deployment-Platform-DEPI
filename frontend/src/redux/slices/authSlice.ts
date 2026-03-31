@@ -1,6 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { loginUser, registerUser } from '../thunk/loginThunk';
-import { getProfile, updateProfile } from '../thunk/profileThunk'; // Added updateProfile
+import { getProfile, updateProfile } from '../thunk/profileThunk';
 import type { User } from '../../types';
 
 interface AuthState {
@@ -14,7 +14,7 @@ interface AuthState {
 const initialState: AuthState = {
   user: null,
   accessToken: null,
-  loading: false,
+  loading: true, 
   error: null,
   isAuthenticated: false
 };
@@ -26,12 +26,14 @@ const authSlice = createSlice({
     setAccessToken: (state, action: PayloadAction<string>) => {
       state.accessToken = action.payload;
       state.isAuthenticated = true;
+      state.loading = false; 
     },
     logout: (state) => {
       state.user = null;
       state.accessToken = null;
       state.isAuthenticated = false;
       state.error = null;
+      state.loading = false; 
     }
   },
   extraReducers: (builder) => {
@@ -53,20 +55,7 @@ const authSlice = createSlice({
         state.error = (action.payload as string) || 'Login failed';
       })
 
-      /* --- Register --- */
-      .addCase(registerUser.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(registerUser.fulfilled, (state) => {
-        state.loading = false;
-      })
-      .addCase(registerUser.rejected, (state, action) => {
-        state.loading = false;
-        state.error = (action.payload as string) || 'Failed to create account';
-      })
-
-      /* --- Get Profile --- */
+      /* --- Get Profile (The Refresh Trigger) --- */
       .addCase(getProfile.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -75,13 +64,14 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload;
         state.isAuthenticated = true;
+
       })
       .addCase(getProfile.rejected, (state, action) => {
         state.loading = false;
-        state.user = null;
-        state.accessToken = null;
-        state.isAuthenticated = false;
-        state.error = (action.payload as string) || 'Session expired';
+        // state.user = null;
+        // state.accessToken = null;
+        // state.isAuthenticated = false;
+        // state.error = (action.payload as string) || 'Session expired';
       })
 
       /* --- Update Profile --- */
@@ -94,7 +84,7 @@ const authSlice = createSlice({
         state.user = {
           ...state.user,
           ...action.payload.user
-        };
+        } as User;
         state.isAuthenticated = true;
       })
       .addCase(updateProfile.rejected, (state, action) => {

@@ -127,7 +127,7 @@ const Signup = () => {
                 className={`input mt-1 p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${errors.fullName && 'border-red-500 focus:ring-red-400'}`}
               />
               {errors.fullName && (
-                <p className="error-text mt-1 text-xs">{errors.fullName.message}</p>
+                <p className="error-text text-red-500 mt-1 text-xs">{errors.fullName.message}</p>
               )}
             </div>
 
@@ -142,7 +142,7 @@ const Signup = () => {
                 placeholder="name@company.com"
                 className={`input mt-1 p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${errors.email && 'border-red-500 focus:ring-red-400'}`}
               />
-              {errors.email && <p className="error-text mt-1 text-xs">{errors.email.message}</p>}
+              {errors.email && <p className="error-text text-red-500 mt-1 text-xs">{errors.email.message}</p>}
             </div>
 
             {/* Passwords */}
@@ -170,7 +170,7 @@ const Signup = () => {
             </div>
 
             {(errors.password || errors.confirmPassword) && (
-              <p className="error-text text-xs">
+              <p className="error-text text-red-500 text-xs">
                 {errors.password?.message || errors.confirmPassword?.message}
               </p>
             )}
