@@ -22,47 +22,44 @@ export const createShipment = createAsyncThunk<
   }
 });
 
-export const getUserShipments = createAsyncThunk<
-  IShipment[],
-  void,
-  { rejectValue: string }
->('shipment/getUserShipments', async (_, { rejectWithValue }) => {
-  try {
-    const response = await axiosInstance.get('/shipment');
-    return response.data.data;
-  } catch (error: any) {
-    const message = error.response?.data?.message || 'Failed to fetch shipments';
-    return rejectWithValue(message);
+export const getUserShipments = createAsyncThunk<IShipment[], void, { rejectValue: string }>(
+  'shipment/getUserShipments',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get('/shipment');
+      return response.data.data;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to fetch shipments';
+      return rejectWithValue(message);
+    }
   }
-});
+);
 
-export const getShipmentById = createAsyncThunk<
-  IShipment,
-  string,
-  { rejectValue: string }
->('shipment/getShipmentById', async (shipmentId, { rejectWithValue }) => {
-  try {
-    const response = await axiosInstance.get(`/shipment/${shipmentId}`);
-    return response.data.data;
-  } catch (error: any) {
-    const message = error.response?.data?.message || 'Failed to fetch shipment';
-    return rejectWithValue(message);
+export const getShipmentById = createAsyncThunk<IShipment, string, { rejectValue: string }>(
+  'shipment/getShipmentById',
+  async (shipmentId, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(`/shipment/${shipmentId}`);
+      return response.data.data;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to fetch shipment';
+      return rejectWithValue(message);
+    }
   }
-});
+);
 
-export const compareRates = createAsyncThunk<
-  IShipment,
-  string,
-  { rejectValue: string }
->('shipment/compareRates', async (shipmentId, { rejectWithValue }) => {
-  try {
-    const response = await axiosInstance.post(`/shipment/${shipmentId}/compare`);
-    return response.data.data;
-  } catch (error: any) {
-    const message = error.response?.data?.message || 'Failed to compare rates';
-    return rejectWithValue(message);
+export const compareRates = createAsyncThunk<IShipment, string, { rejectValue: string }>(
+  'shipment/compareRates',
+  async (shipmentId, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post(`/shipment/${shipmentId}/compare`);
+      return response.data.data;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to compare rates';
+      return rejectWithValue(message);
+    }
   }
-});
+);
 
 export const selectRate = createAsyncThunk<
   IShipment,
@@ -71,7 +68,7 @@ export const selectRate = createAsyncThunk<
 >('shipment/selectRate', async ({ shipmentId, shippoRateId }, { rejectWithValue }) => {
   try {
     const response = await axiosInstance.post(`/shipment/${shipmentId}/select-rate`, {
-      shippoRateId,
+      shippoRateId
     });
     return response.data.data;
   } catch (error: any) {
@@ -79,3 +76,16 @@ export const selectRate = createAsyncThunk<
     return rejectWithValue(message);
   }
 });
+
+export const deleteShipment = createAsyncThunk<string, string, { rejectValue: string }>(
+  'shipment/deleteShipment',
+  async (shipmentId, { rejectWithValue }) => {
+    try {
+      await axiosInstance.delete(`/shipment/${shipmentId}`);
+      return shipmentId;
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to delete shipment';
+      return rejectWithValue(message);
+    }
+  }
+);

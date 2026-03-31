@@ -1,4 +1,4 @@
-import mongoose, { Document } from "mongoose";
+import mongoose, { Document } from 'mongoose';
 
 export interface IRate {
   carrier: string; // e.g. "UPS"
@@ -10,19 +10,19 @@ export interface IRate {
 }
 
 // The package dimensions
- export interface IPackage {
+export interface IPackage {
   length: number;
   width: number;
   height: number;
-  units: "cm" | "in";
+  units: 'kg' | 'lb' | 'cm' | 'in';
   weight: number;
 }
 
 // An address object
- export interface IAddress {
-  name: string; 
-  phone: string; 
-  email: string; 
+export interface IAddress {
+  name: string;
+  phone: string;
+  email: string;
   street: string;
   city: string;
   state: string;
@@ -38,12 +38,11 @@ export interface IShipment extends Document {
   comparisonResults: IRate[]; // filled after carrier API call
   shippoShipmentId?: string | null; // Shippo's shipment ID for rate lookup
   selectedRate?: IRate | null; // filled when user picks one
-  status: "draft" | "compared" | "booked" | "cancelled";
+  status: 'draft' | 'compared' | 'booked' | 'cancelled';
   paidOn?: Date;
   trackingNumber?: string;
   trackingUrl?: string;
   labelUrl?: string;
   createdAt: Date;
   updatedAt: Date;
-  
 }

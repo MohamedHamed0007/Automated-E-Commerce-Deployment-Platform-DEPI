@@ -1,6 +1,13 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { IShipment, IRate } from '../../types';
-import { createShipment, getUserShipments, getShipmentById, compareRates, selectRate } from '../thunk/shipmentThunk';
+import {
+  createShipment,
+  getUserShipments,
+  getShipmentById,
+  compareRates,
+  selectRate,
+  deleteShipment // Added the new deleteShipment thunk
+} from '../thunk/shipmentThunk';
 
 interface ShipmentState {
   shipments: IShipment[];
@@ -15,7 +22,7 @@ const initialState: ShipmentState = {
   currentShipment: null,
   rates: [],
   loading: false,
-  error: null,
+  error: null
 };
 
 const shipmentSlice = createSlice({
@@ -27,7 +34,7 @@ const shipmentSlice = createSlice({
     },
     clearRates: (state) => {
       state.rates = [];
-    },
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -94,8 +101,28 @@ const shipmentSlice = createSlice({
       .addCase(selectRate.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+      })
+      // --- New Delete Shipment Cases ---
+      .addCase(deleteShipment.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteShipment.fulfilled, (state, action) => {
+        state.loading = false;
+        // Automatically remove the deleted shipment from the state array
+        state.shipments = state.shipments.filter((shipment) => shipment._id !== action.payload);
+
+        // Optional: If the currently viewed shipment was just deleted, clear it out
+        if (state.currentShipment?._id === action.payload) {
+          state.currentShipment = null;
+          state.rates = [];
+        }
+      })
+      .addCase(deleteShipment.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
       });
-  },
+  }
 });
 
 export const { clearCurrentShipment, clearRates } = shipmentSlice.actions;
