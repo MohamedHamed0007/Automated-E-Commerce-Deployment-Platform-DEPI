@@ -8,8 +8,8 @@ import { stripe } from "../../config/Payment/stripe";
 export const createPaymentController = async (req: Request, res: Response) => {
   try {
     const { shipmentId } = req.body;
-
     const userId = req.user?.userId;
+
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
@@ -38,7 +38,8 @@ export const createPaymentController = async (req: Request, res: Response) => {
     }
 
     const amount = shipment.selectedRate.finalRate;
-    const currency = shipment.selectedRate.currency;
+
+    const currency = (shipment.selectedRate.currency || "usd").toLowerCase();
 
     const result = await createPaymentIntentForShipment({
       shipmentId,
@@ -50,7 +51,7 @@ export const createPaymentController = async (req: Request, res: Response) => {
     return res.status(201).json({
       clientSecret: result.clientSecret,
       paymentId: result.payment._id,
-      paymenyIntentId: result.payment.stripePaymentIntentId,
+      paymentIntentId: result.payment.stripePaymentIntentId, 
     });
   } catch (error: any) {
     return res.status(500).json({

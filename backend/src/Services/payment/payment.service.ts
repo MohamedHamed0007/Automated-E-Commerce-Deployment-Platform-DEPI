@@ -13,7 +13,7 @@ export const createPaymentIntentForShipment = async ({
   shipmentId,
   userId,
   amount,
-  currency = "egp",
+  currency = "usd",
 }: CreatePaymentInput) => {
   const payment = await Payment.create({
     shipmentId: new Types.ObjectId(shipmentId),
