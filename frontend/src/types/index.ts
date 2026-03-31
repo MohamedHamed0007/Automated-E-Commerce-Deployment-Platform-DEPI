@@ -49,17 +49,17 @@ export interface ContactForm {
 export interface IAddress {
   street?: string;
   city?: string;
-  country?: string; 
-  state?: string; 
+  country?: string;
+  state?: string;
 }
 
 export interface User {
   _id: string;
   fullName: string;
   email: string;
-  role: 'user' ;
-  phone?: string; 
-  address?: IAddress; 
+  role: 'user';
+  phone?: string;
+  address?: IAddress;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -68,7 +68,7 @@ export interface IPackage {
   length: number;
   width: number;
   height: number;
-  units: 'cm' | 'in';
+  units: 'kg' | 'lb' | 'cm' | 'in';
   weight: number;
 }
 
