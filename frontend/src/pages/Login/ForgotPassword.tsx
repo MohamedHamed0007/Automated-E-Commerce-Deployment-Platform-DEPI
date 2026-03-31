@@ -30,7 +30,6 @@ export default function ForgotPassword() {
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     try {
-
       const response = await axiosInstance.post('/auth/forgot-password', {
         email: data.email
       });
@@ -48,21 +47,22 @@ export default function ForgotPassword() {
   return (
     <div
       className="min-h-screen flex items-center justify-center
-                    bg-gradient-to-br from-gray-100 to-gray-200
-                    dark:bg-slate-800 transition-colors"
+                 bg-gradient-to-br from-gray-100 to-gray-200
+                 dark:from-slate-950 dark:to-slate-900 transition-colors duration-500"
     >
       <div
         className="w-full max-w-md
-                      bg-white dark:bg-slate-700
-                      p-8 rounded-2xl shadow-xl text-center
-                      transition-colors"
+                   bg-white dark:bg-slate-900
+                   p-8 rounded-2xl shadow-xl text-center
+                   border border-transparent dark:border-slate-800
+                   transition-all duration-300"
       >
         {/* ICON */}
         <div
-          className="w-14 h-14 mx-auto mb-4 rounded-xl
-                        bg-blue-600 text-white
-                        flex items-center justify-center
-                        text-2xl shadow"
+          className="w-16 h-16 mx-auto mb-6 rounded-2xl
+                     bg-blue-600 text-white
+                     flex items-center justify-center
+                     text-3xl shadow-lg shadow-blue-500/20"
         >
           🚚
         </div>
@@ -72,55 +72,66 @@ export default function ForgotPassword() {
           Forgot your password?
         </h2>
 
-        <p className="text-gray-500 dark:text-slate-400 mb-6">
+        <p className="text-gray-500 dark:text-slate-400 mb-8">
           Enter your email and we’ll send you a reset link
         </p>
 
         {sent ? (
-          <div className="space-y-4">
-            <p className="text-green-600 dark:text-green-400 font-medium">
-              Reset link sent successfully ✅
+          <div className="space-y-4 p-6 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-100 dark:border-green-900/30">
+            <p className="text-green-600 dark:text-green-400 font-bold flex items-center justify-center gap-2">
+              <span>Reset link sent successfully</span>
+              <span className="text-xl">✅</span>
             </p>
-            <p className="text-sm text-gray-500 dark:text-slate-300">
+            <p className="text-sm text-gray-500 dark:text-slate-300 leading-relaxed">
               Please check your inbox (and spam folder) to reset your password.
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit(onSubmit)}>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* EMAIL INPUT */}
-            <div className="relative mb-4">
-              <input
-                {...register('email')}
-                type="email"
-                disabled={isLoading}
-                placeholder="name@company.com"
-                className={`w-full px-4 py-3 rounded-lg border outline-none transition
-                    focus:ring-2 focus:ring-blue-500
-                    ${errors.email ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'}
-                    bg-white dark:bg-slate-800
-                    text-gray-900 dark:text-white
-                    placeholder-gray-400 dark:placeholder:text-gray-500
+            <div className="text-left">
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5 ml-1">
+                Email Address
+              </label>
+              <div className="relative">
+                <input
+                  {...register('email')}
+                  type="email"
+                  disabled={isLoading}
+                  placeholder="name@company.com"
+                  className={`w-full px-4 py-3 rounded-xl border outline-none transition-all duration-200
+                    focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500
+                    ${
+                      errors.email
+                        ? 'border-red-500 dark:border-red-500/50 bg-red-50/30'
+                        : 'border-gray-200 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-950'
+                    }
+                    text-gray-900 dark:text-slate-100
+                    placeholder-gray-400 dark:placeholder-gray-600
                     disabled:opacity-60
-                `}
-              />
+                  `}
+                />
+              </div>
+              {errors.email && (
+                <p className="text-red-500 dark:text-red-400 text-xs mt-1.5 ml-1 font-medium">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
-
-            {errors.email && (
-              <p className="text-red-500 text-sm mb-3 text-left">{errors.email.message}</p>
-            )}
 
             {/* SUBMIT BUTTON */}
             <button
               type="submit"
               disabled={!isValid || isLoading}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold
-                         hover:bg-blue-700 transition
-                         disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold
+                         hover:bg-blue-700 active:scale-[0.98] transition-all
+                         disabled:opacity-50 disabled:active:scale-100
+                         flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25"
             >
               {isLoading ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Sending...
+                  <span>Sending...</span>
                 </>
               ) : (
                 'Send Reset Link →'
@@ -130,13 +141,17 @@ export default function ForgotPassword() {
         )}
 
         {/* BACK TO LOGIN */}
-        <Link
-          to="/login"
-          className="block mt-6 text-sm text-gray-500 dark:text-slate-400
-                     hover:text-blue-600 dark:hover:text-blue-400 transition"
-        >
-          ← Back to login
-        </Link>
+        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-800">
+          <Link
+            to="/login"
+            className="text-sm font-medium text-gray-500 dark:text-slate-400
+                       hover:text-blue-600 dark:hover:text-blue-400 transition-colors
+                       flex items-center justify-center gap-1.5"
+          >
+            <span>←</span>
+            <span>Back to login</span>
+          </Link>
+        </div>
       </div>
     </div>
   );
