@@ -9,7 +9,6 @@ A full-stack logistics aggregator platform with a React + TypeScript + Vite fron
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
-  - [Environment Variables](#environment-variables)
   - [Running the Application](#running-the-application)
 - [Project Structure](#project-structure)
 - [API Documentation](#api-documentation)
