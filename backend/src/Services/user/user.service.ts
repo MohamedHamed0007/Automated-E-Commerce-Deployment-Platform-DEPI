@@ -54,12 +54,15 @@ export const changePasswordService = async (
   const isCorrect = await comparePassword(currentPassword, user.passwordHash);
   if (!isCorrect) throw createUnauthorizedError('current password is incorrect');
 
+  if (newPassword === currentPassword) {
+    throw new Error('New password cannot be the same as current password');
+  }
+
   const newHash = await hashPassword(newPassword);
   user.passwordHash = newHash;
   user.refreshTokens = [];
   await user.save();
 
   const { passwordHash, refreshTokens, ...safeUser } = user.toObject();
-
   return safeUser;
 };

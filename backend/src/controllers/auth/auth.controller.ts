@@ -36,13 +36,13 @@ export const register = asyncHandler(async (req, res) => {
 // =====================
 export const login = asyncHandler(async (req, res) => {
   const { user, accessToken, refreshToken } = await loginUser(req.body.email, req.body.password);
-  res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    path: '/'
-  });
+res.cookie('refreshToken', refreshToken, {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+  path: '/'
+});
 
   successResponse(res, 'Login successful', { user, accessToken }, 200);
 });
@@ -74,18 +74,14 @@ export const ForgotPassword = asyncHandler(async (req, res) => {
 // Reset user password
 // =====================
 export const resetpassword = asyncHandler(async (req, res) => {
-  // Get new password from request body
   const { password } = req.body;
 
-  // Validate that password is provided
   if (!password) {
     throw createValidationError('Password is required');
   }
 
-  // Call service to reset password using the token
   const user = await resetPassword(req.params.token, password);
 
-  // Create a safe object to return (exclude sensitive fields)
   const safeUser = {
     _id: user._id,
     email: user.email,
@@ -93,7 +89,6 @@ export const resetpassword = asyncHandler(async (req, res) => {
     role: user.role
   };
 
-  // Send success response
   successResponse(res, 'Password reset successfully', safeUser, 200);
 });
 
