@@ -2,6 +2,7 @@ import { RegisterData, IUserSafe } from '../../types/User/user.mongoose.types';
 import User from '../../config/DB/Models/User/user.models';
 import {
   createConflictError,
+  createForbiddenError,
   createNotFoundError,
   createUnauthorizedError
 } from '../../utils/ApiErrors/ApiErrors';
@@ -47,27 +48,22 @@ export const registerUser = async (userData: RegisterData): Promise<IUserSafe> =
 
 // ========================= LOGIN =========================
 
-// src/services/authService.ts
-
-export const loginUser = async (email: string, password: string, requiredRole: string = 'user') => {
+export const loginUser = async (email: string, password: string, requiredRole: string) => {
   const user = await User.findOne({ email }).select('+passwordHash');
-  
-  if (!user) throw createUnauthorizedError('Invalid email or password');
+  if (!user) throw createUnauthorizedError('invalid email or password');
 
   const isPasswordValid = await comparePassword(password, user.passwordHash);
-  if (!isPasswordValid) throw createUnauthorizedError('Invalid email or password');
-
+  if (!isPasswordValid) throw createUnauthorizedError('invalid email or password');
 
   if (user.role !== requiredRole) {
-    throw createForbiddenError(`Access denied. This portal is for ${requiredRole}s only.`);
+    const errorMsg =
+      requiredRole === 'admin'
+        ? 'sorry, only admins can log in from the admin portal.'
+        : 'sorry, you do not have permission to log in from this portal.';
+    throw createForbiddenError(errorMsg);
   }
 
-  const payload = {
-    userId: user._id.toString(),
-    email: user.email,
-    role: user.role
-  };
-
+  const payload = { userId: user._id.toString(), email: user.email, role: user.role };
   const accessToken = generateAccessToken(payload);
   const refreshToken = generateRefreshToken(payload);
 
@@ -75,14 +71,15 @@ export const loginUser = async (email: string, password: string, requiredRole: s
     token: refreshToken,
     expireAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   });
-  
   user.lastLogin = new Date();
   await user.save();
 
-  const { passwordHash: _, refreshTokens: __, ...safeUser } = user.toObject();
+  const userObj = user.toObject();
+  const { passwordHash, refreshTokens, ...safeUser } = userObj; 
 
-  return { user: safeUser as IUserSafe, accessToken, refreshToken };
+  return { user: safeUser, accessToken, refreshToken };
 };
+
 
 // ========================= REFRESH TOKEN
 export const refreshAccessTokenService = async (refreshToken: string): Promise<string> => {
