@@ -22,6 +22,16 @@ export const getShipmentById = asyncHandler(async (req: Request, res: Response) 
   return successResponse(res, 'Shipment retrieved successfully', shipment, 200);
 });
 
+export const updateShipmentStatus = asyncHandler(async (req: Request, res: Response) => {
+  const shipment = await shipmentService.updateShipmentStatus(
+    req.params.id,
+    req.user!.userId,
+    req.body.status
+  );
+
+  return successResponse(res, 'Shipment status updated successfully', shipment, 200);
+});
+
 export const compareRates = asyncHandler(async (req: Request, res: Response) => {
   await shipmentService.compareRates(req.params.id, req.user!.userId);
   const shipment = await shipmentService.getShipmentById(req.params.id, req.user!.userId);

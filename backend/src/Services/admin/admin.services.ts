@@ -1,6 +1,19 @@
 import { Chat } from '../../config/DB/Models/Chat/Chat.model';
 import { Message } from '../../config/DB/Models/Message/Message.model';
+import Shipment from '../../config/DB/Models/Shipment/Shipment.models';
 import User from '../../config/DB/Models/User/user.models';
+import mongoose from 'mongoose';
+
+const SHIPMENT_STATUS_MAP: Record<string, string> = {
+  draft: 'draft',
+  pending: 'draft',
+  compared: 'compared',
+  processing: 'compared',
+  booked: 'booked',
+  'in transit': 'booked',
+  cancelled: 'cancelled',
+  canceled: 'cancelled'
+};
 
 /**
  * Returns all chats with last message, unread count, and user info.
@@ -97,10 +110,54 @@ export const deleteUserService = async (userId: string) => {
   return await User.findByIdAndDelete(userId);
 };
 
-// export const getAllShipmentsService = async () => {
-//   return await Shipment.find();
-// };
+export const getAllShipmentsService = async () => {
+  return await Shipment.find().sort({ createdAt: -1 });
+};
 
-// export const deleteShipmentService = async (shipmentId: string) => {
-//   return await Shipment.findByIdAndDelete(shipmentId);
-// };
+export const getAdminShipmentByIdService = async (shipmentLookup: string) => {
+  const shipment = mongoose.Types.ObjectId.isValid(shipmentLookup)
+    ? await Shipment.findOne({
+        $or: [{ _id: shipmentLookup }, { trackingNumber: shipmentLookup }]
+      })
+    : await Shipment.findOne({ trackingNumber: shipmentLookup });
+
+  if (!shipment) {
+    const err = new Error('Shipment not found');
+    (err as NodeJS.ErrnoException).code = '404';
+    throw err;
+  }
+
+  return shipment;
+};
+
+export const updateAdminShipmentStatusService = async (
+  shipmentLookup: string,
+  nextStatus: string
+) => {
+  if (!nextStatus || typeof nextStatus !== 'string') {
+    const err = new Error('Shipment status is required');
+    (err as NodeJS.ErrnoException).code = '400';
+    throw err;
+  }
+
+  const normalizedStatus = SHIPMENT_STATUS_MAP[nextStatus.trim().toLowerCase()];
+
+  if (!normalizedStatus) {
+    const err = new Error(
+      'Invalid shipment status. Supported values: Pending, Processing, In Transit, Cancelled'
+    );
+    (err as NodeJS.ErrnoException).code = '400';
+    throw err;
+  }
+
+  const shipment = await getAdminShipmentByIdService(shipmentLookup);
+  shipment.status = normalizedStatus as any;
+  await shipment.save();
+
+  return shipment;
+};
+
+export const deleteAdminShipmentService = async (shipmentLookup: string) => {
+  const shipment = await getAdminShipmentByIdService(shipmentLookup);
+  await Shipment.deleteOne({ _id: shipment._id });
+};

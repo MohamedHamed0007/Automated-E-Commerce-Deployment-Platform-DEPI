@@ -3,6 +3,7 @@ import { shippo } from '../../config/env/env';
 import { IAddress, IRate, IShipment } from '../../types/Shipment/shipment.mongoose.types';
 import { applyCommission } from '../commission/commission.service';
 import { createNotFoundError } from '../../utils/ApiErrors/ApiErrors';
+import mongoose from 'mongoose';
 
 interface PackageInput {
   length: number;
@@ -23,6 +24,32 @@ interface SelectRateInput {
   shipmentId: string;
   userId: string;
   shippoRateId: string;
+}
+
+const SHIPMENT_STATUS_MAP: Record<string, IShipment['status']> = {
+  draft: 'draft',
+  pending: 'draft',
+  compared: 'compared',
+  processing: 'compared',
+  booked: 'booked',
+  'in transit': 'booked',
+  cancelled: 'cancelled',
+  canceled: 'cancelled'
+};
+
+function buildShipmentLookupQuery(shipmentLookup: string, userId: string) {
+  if (mongoose.Types.ObjectId.isValid(shipmentLookup)) {
+    return {
+      userId,
+      $or: [{ _id: shipmentLookup }, { trackingNumber: shipmentLookup }]
+    };
+  }
+
+  return { trackingNumber: shipmentLookup, userId };
+}
+
+function normalizeShipmentStatus(status: string): IShipment['status'] | null {
+  return SHIPMENT_STATUS_MAP[status.trim().toLowerCase()] ?? null;
 }
 
 function buildShippoAddress(address: IAddress) {
@@ -55,9 +82,38 @@ export async function getUserShipments(userId: string): Promise<IShipment[]> {
   return await ShipmentModel.find({ userId }).sort({ createdAt: -1 });
 }
 
-export async function getShipmentById(shipmentId: string, userId: string): Promise<IShipment> {
-  const shipment = await ShipmentModel.findOne({ _id: shipmentId, userId });
+export async function getShipmentById(shipmentLookup: string, userId: string): Promise<IShipment> {
+  const shipment = await ShipmentModel.findOne(buildShipmentLookupQuery(shipmentLookup, userId));
   if (!shipment) throw createNotFoundError('Shipment not found');
+  return shipment;
+}
+
+export async function updateShipmentStatus(
+  shipmentLookup: string,
+  userId: string,
+  nextStatus: string
+): Promise<IShipment> {
+  if (!nextStatus || typeof nextStatus !== 'string') {
+    throw new Error('Shipment status is required');
+  }
+
+  const normalizedStatus = normalizeShipmentStatus(nextStatus);
+
+  if (!normalizedStatus) {
+    throw new Error(
+      "Invalid shipment status. Supported values: Pending, Processing, In Transit, Cancelled"
+    );
+  }
+
+  const shipment = await ShipmentModel.findOne(buildShipmentLookupQuery(shipmentLookup, userId));
+
+  if (!shipment) {
+    throw createNotFoundError('Shipment not found');
+  }
+
+  shipment.status = normalizedStatus;
+  await shipment.save();
+
   return shipment;
 }
 

@@ -34,12 +34,31 @@ export const removeUser = async (req: Request, res: Response) => {
   res.json({ message: 'User deleted successfully' });
 };
 
-// export const getShipments = async (req: Request, res: Response) => {
-//   const shipments = await getAllShipmentsService();
-//   res.json(shipments);
-// };
+export const getShipments = async (req: Request, res: Response) => {
+  const shipments = await adminService.getAllShipmentsService();
+  res.json(shipments);
+};
 
-// export const removeShipment = async (req: Request, res: Response) => {
-//   await deleteShipmentService(req.params.id);
-//   res.json({ message: 'Shipment deleted successfully' });
-// };
+export const getShipmentById = asyncHandler(
+  async (req: Request, res: Response, _next: NextFunction) => {
+    const shipment = await adminService.getAdminShipmentByIdService(req.params.id);
+    return ApiResponse.success(res, 'Shipment fetched', shipment);
+  }
+);
+
+export const updateShipmentStatus = asyncHandler(
+  async (req: Request, res: Response, _next: NextFunction) => {
+    const shipment = await adminService.updateAdminShipmentStatusService(
+      req.params.id,
+      req.body.status
+    );
+    return ApiResponse.success(res, 'Shipment status updated', shipment);
+  }
+);
+
+export const removeShipment = asyncHandler(
+  async (req: Request, res: Response, _next: NextFunction) => {
+    await adminService.deleteAdminShipmentService(req.params.id);
+    return ApiResponse.success(res, 'Shipment deleted successfully', null);
+  }
+);

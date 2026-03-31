@@ -12,7 +12,8 @@ import {
   compareRates,
   selectRate,
   getTracking,
-  deleteShipment
+  deleteShipment,
+  updateShipmentStatus
 } from '../../controllers/shipment/shipment.controller';
 
 const shipmentRouter = express.Router();
@@ -21,7 +22,8 @@ shipmentRouter.use(authentication);
 
 shipmentRouter.post('/', validateBody(createShipmentSchema), createShipment);
 shipmentRouter.get('/', getUserShipments);
-shipmentRouter.get('/:id', validateObjectId('id'), getShipmentById);
+shipmentRouter.get('/:id', getShipmentById);
+shipmentRouter.patch('/:id/status', updateShipmentStatus);
 shipmentRouter.post('/:id/compare', validateObjectId('id'), compareRates);
 shipmentRouter.post(
   '/:id/select-rate',

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { StatusBadge } from "@/components/StatusBadge";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchShipments } from "@/store/shipmentsSlice";
+import { deleteShipment, fetchShipments } from "@/store/shipmentsSlice";
 import type { Shipment } from "@/types/Shipment";
 
 const STATUSES = [
@@ -14,13 +14,13 @@ const STATUSES = [
   "In Transit",
   "Out for Delivery",
   "Delivered",
-  "Cancelled",
+ 
 ];
 
 export default function ShipmentsPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { shipments, loadingShipments, error } = useAppSelector(
+  const { shipments, loadingShipments, deletingShipmentId, error } = useAppSelector(
     (state) => state.shipments
   );
   const [filter, setFilter] = useState("All");
@@ -144,8 +144,29 @@ export default function ShipmentsPage() {
                   <td className="px-4 py-3">
                     <StatusBadge status={shipment.status} />
                   </td>
-                  <td className="px-4 py-3 text-xs text-blue-600 dark:text-blue-400">
-                    View
+                  <td className="px-4 py-3 text-xs">
+                    <div className="flex items-center gap-3">
+                      <span className="text-blue-600 dark:text-blue-400">View</span>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          const shipmentId = shipment._id || shipment.id;
+
+                          if (!shipmentId) {
+                            return;
+                          }
+
+                          dispatch(deleteShipment(shipmentId));
+                        }}
+                        disabled={deletingShipmentId === (shipment._id || shipment.id)}
+                        className="text-red-600 transition-opacity hover:underline disabled:cursor-not-allowed disabled:opacity-50 dark:text-red-400"
+                      >
+                        {deletingShipmentId === (shipment._id || shipment.id)
+                          ? "Deleting..."
+                          : "Delete"}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
