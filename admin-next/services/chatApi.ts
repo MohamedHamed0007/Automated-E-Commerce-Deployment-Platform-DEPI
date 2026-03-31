@@ -1,5 +1,4 @@
 import axiosInstance from "@/lib/axiosInstance";
-import { buildInternalApiUrl } from "@/lib/internalApiUrl";
 import type {
   ChatMessage,
   ChatMessagesResult,
@@ -21,6 +20,7 @@ export type CreateChatPayload = {
   email?: string;
 };
 
+// --- Helper Functions ---
 function isRecord(value: unknown): value is UnknownRecord {
   return value !== null && typeof value === "object";
 }
@@ -29,7 +29,6 @@ function unwrapPayload<T>(payload: T | ApiEnvelope<T>): T {
   if (isRecord(payload) && "data" in payload && payload.data !== undefined) {
     return payload.data as T;
   }
-
   return payload as T;
 }
 
@@ -45,12 +44,10 @@ function asNumber(value: unknown, fallback = 0) {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value;
   }
-
   if (typeof value === "string") {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : fallback;
   }
-
   return fallback;
 }
 
@@ -58,11 +55,9 @@ function asBoolean(value: unknown) {
   if (typeof value === "boolean") {
     return value;
   }
-
   if (typeof value === "string") {
     return value === "true";
   }
-
   return false;
 }
 
@@ -83,6 +78,7 @@ function getMessageId(value: UnknownRecord) {
   );
 }
 
+// --- Normalization Logic ---
 function normalizeChatSummary(rawChat: unknown): ChatSummary {
   const chat = isRecord(rawChat) ? rawChat : {};
   const participant = isRecord(chat.user)
@@ -162,83 +158,61 @@ function normalizeMessage(rawMessage: unknown): ChatMessage {
 
 function extractChats(payload: unknown) {
   const unwrapped = unwrapPayload(payload);
-
-  if (Array.isArray(unwrapped)) {
-    return unwrapped.map(normalizeChatSummary);
-  }
-
+  if (Array.isArray(unwrapped)) return unwrapped.map(normalizeChatSummary);
   if (isRecord(unwrapped)) {
     const candidates = [unwrapped.chats, unwrapped.items, unwrapped.results];
-
     for (const candidate of candidates) {
-      if (Array.isArray(candidate)) {
-        return candidate.map(normalizeChatSummary);
-      }
+      if (Array.isArray(candidate)) return candidate.map(normalizeChatSummary);
     }
   }
-
   return [];
 }
 
 function extractMessages(payload: unknown, page: number, limit: number): ChatMessagesResult {
   const unwrapped = unwrapPayload(payload);
-
   if (Array.isArray(unwrapped)) {
-    return {
-      messages: unwrapped.map(normalizeMessage),
-      total: unwrapped.length,
-      page,
-      limit,
-    };
+    return { messages: unwrapped.map(normalizeMessage), total: unwrapped.length, page, limit };
   }
-
   if (isRecord(unwrapped)) {
     const candidates = [unwrapped.messages, unwrapped.docs, unwrapped.items, unwrapped.results];
     const found = candidates.find(Array.isArray);
-
     if (Array.isArray(found)) {
       return {
         messages: found.map(normalizeMessage),
-        total:
-          asNumber(unwrapped.total) ||
-          asNumber(unwrapped.totalDocs) ||
-          asNumber(unwrapped.count) ||
-          found.length,
+        total: asNumber(unwrapped.total) || asNumber(unwrapped.totalDocs) || found.length,
         page: asNumber(unwrapped.page, page),
         limit: asNumber(unwrapped.limit, limit),
       };
     }
   }
-
-  return {
-    messages: [],
-    total: 0,
-    page,
-    limit,
-  };
+  return { messages: [], total: 0, page, limit };
 }
 
-const CHAT_API_BASE = buildInternalApiUrl("/chatApi");
+// --- API Implementation ---
+
+// المسار الأساسي اللي السيرفر مستنيه
+const CHAT_API_BASE = "/chatApi"; 
 
 export async function getChats() {
+  // هيجرب يجيب كل المحادثات من /chatApi/all
   const response = await axiosInstance.get(`${CHAT_API_BASE}/all`);
   return extractChats(response.data);
 }
 
 export async function getChatMessages(chatId: string, page = 1, limit = 20) {
+  // هيضرب في المسار اللي إنت بعته بالظبط: /chatApi/:id/messages
   const response = await axiosInstance.get(`${CHAT_API_BASE}/${chatId}/messages`, {
     params: { page, limit },
   });
-
   return extractMessages(response.data, page, limit);
 }
 
 export async function sendChatMessage(chatId: string, message: string) {
+  // بيبعت رسالة جديدة للمحادثة
   const response = await axiosInstance.post(`${CHAT_API_BASE}/messages`, {
     chatId,
     message,
   });
-
   const payload = unwrapPayload(response.data);
   return isRecord(payload) ? normalizeMessage(payload) : null;
 }

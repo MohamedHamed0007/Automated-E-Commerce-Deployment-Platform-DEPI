@@ -1,5 +1,4 @@
 import axiosInstance from "@/lib/axiosInstance";
-import { buildInternalApiUrl } from "@/lib/internalApiUrl";
 import type { Shipment } from "@/types/Shipment";
 
 interface ApiResponse<T> {
@@ -7,8 +6,9 @@ interface ApiResponse<T> {
   message?: string;
 }
 
-const SHIPMENTS_COLLECTION_PATH = "/shipment/";
-const SHIPMENTS_ITEM_PATH = "/shipment";
+// نصيحة: اتأكد إن الباك إند مستني المسار بـ / في الآخر أو لاء
+// لو المسار في الباك إند هو /api/v1/shipment يبقى نكتبه كدة:
+const SHIPMENTS_PATH = "/shipment"; 
 
 const unwrapResponse = <T>(payload: T | ApiResponse<T>): T => {
   if (
@@ -19,13 +19,13 @@ const unwrapResponse = <T>(payload: T | ApiResponse<T>): T => {
   ) {
     return payload.data as T;
   }
-
   return payload as T;
 };
 
 export const getShipments = async (): Promise<Shipment[]> => {
+  // 🔥 التعديل: استخدمنا axiosInstance مباشرة مع المسار
   const response = await axiosInstance.get<ApiResponse<Shipment[]> | Shipment[]>(
-    buildInternalApiUrl(SHIPMENTS_COLLECTION_PATH)
+    SHIPMENTS_PATH
   );
 
   return unwrapResponse(response.data);
@@ -33,7 +33,7 @@ export const getShipments = async (): Promise<Shipment[]> => {
 
 export const getShipmentById = async (id: string): Promise<Shipment> => {
   const response = await axiosInstance.get<ApiResponse<Shipment> | Shipment>(
-    buildInternalApiUrl(`${SHIPMENTS_ITEM_PATH}/${id}`)
+    `${SHIPMENTS_PATH}/${id}`
   );
 
   return unwrapResponse(response.data);
