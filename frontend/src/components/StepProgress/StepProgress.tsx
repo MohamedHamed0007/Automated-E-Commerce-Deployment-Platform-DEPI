@@ -33,7 +33,7 @@ export function StepProgress({ steps, currentStep }: StepProgressProps) {
                 )}
               </div>
               <div className="mt-2 text-center">
-                <p className={`text-sm font-medium ${index <= currentStep ? 'text-gray-900' : 'text-gray-500'}`}>
+                <p className={`text-sm font-medium ${index <= currentStep ? 'text-gray-200' : 'text-gray-500'}`}>
                   {step.label}
                 </p>
                 {step.description && (
