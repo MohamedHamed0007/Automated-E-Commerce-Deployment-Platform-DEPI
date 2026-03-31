@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Filter, Download, Eye, Package, Loader2, Trash2 } from 'lucide-react';
+import { Filter, Download, Eye, Package, Loader2, Trash2, AlertTriangle, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -40,13 +40,19 @@ export default function History() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
 
+  // State for Custom Delete Modal
+  const [deleteModal, setDeleteModal] = useState<{ show: boolean; id: string | null }>({
+    show: false,
+    id: null
+  });
+
   useEffect(() => {
     dispatch(getUserShipments());
   }, [dispatch]);
 
   const stats = useMemo(() => {
     const total = shipments.length;
-    const delivered = shipments.filter((s) => s.status === 'booked').length;
+    const delivered = shipments.filter((s) => s.status === 'delivered').length;
     const inTransit = shipments.filter((s) => s.status === 'booked').length;
     const totalSpent = shipments.reduce((sum, s) => sum + getCourierPrice(s), 0);
     return { total, delivered, inTransit, totalSpent };
@@ -67,14 +73,23 @@ export default function History() {
     navigate(`/user/tracking/${shipment._id}`);
   };
 
-  const handleRemoveShipment = async (id: string) => {
-    if (window.confirm('Are you sure you want to remove this shipment?')) {
-      try {
-        await dispatch(deleteShipment(id)).unwrap();
-        toast.success('Shipment removed successfully');
-      } catch (error: any) {
-        toast.error(error || 'Failed to remove shipment');
-      }
+  // Open Custom Modal
+  const confirmDelete = (id: string) => {
+    setDeleteModal({ show: true, id });
+  };
+
+  // Perform Delete Action
+  const handleRemoveShipment = async () => {
+    if (!deleteModal.id) return;
+
+    const id = deleteModal.id;
+    setDeleteModal({ show: false, id: null }); // Close modal immediately
+
+    try {
+      await dispatch(deleteShipment(id)).unwrap();
+      toast.success('Shipment removed successfully');
+    } catch (error: any) {
+      toast.error(error || 'Failed to remove shipment');
     }
   };
 
@@ -103,8 +118,58 @@ export default function History() {
   const statusOptions = ['All', 'Draft', 'Compared', 'Booked', 'Cancelled'];
 
   return (
-    <div className="space-y-6 mx-auto container text-gray-900 dark:text-gray-100">
+    <div className="space-y-6 mx-auto container text-gray-900 dark:text-gray-100 relative">
       <Breadcrumb items={[{ label: 'Dashboard', href: '/user' }, { label: 'Shipment History' }]} />
+
+      {/* Custom Delete Confirmation Modal */}
+      {deleteModal.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-x-hidden overflow-y-auto">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+            onClick={() => setDeleteModal({ show: false, id: null })}
+          />
+
+          {/* Modal Body */}
+          <div className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md p-6 transform transition-all border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in duration-200">
+            <button
+              onClick={() => setDeleteModal({ show: false, id: null })}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex flex-col items-center text-center">
+              <div className="w-14 h-14 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4">
+                <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-500" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                Remove Shipment?
+              </h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed mb-8">
+                Are you sure you want to remove this shipment? This action cannot be undone and will
+                remove all associated tracking data.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-3 w-full">
+                <Button
+                  variant="ghost"
+                  className="flex-1 border border-slate-200 dark:border-slate-700"
+                  onClick={() => setDeleteModal({ show: false, id: null })}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white dark:bg-red-500 dark:hover:bg-red-600 border-none shadow-lg shadow-red-200 dark:shadow-none"
+                  onClick={handleRemoveShipment}
+                >
+                  Confirm Delete
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -273,7 +338,7 @@ export default function History() {
                               variant="ghost"
                               size="sm"
                               className="gap-1.5 px-3 text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
-                              onClick={() => handleRemoveShipment(shipment._id)}
+                              onClick={() => confirmDelete(shipment._id)}
                             >
                               <Trash2 className="w-4 h-4" />
                               Remove

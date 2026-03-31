@@ -1,5 +1,5 @@
-import { Check, Clock, Shield, Star, TrendingUp, Zap, Loader2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Check, Clock, Shield, Star, TrendingUp, Zap, Loader2, ArrowLeft } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Badge } from '../../components/Badge';
 import { Breadcrumb } from '../../components/Breadcrumb';
@@ -16,7 +16,7 @@ const filters = [
   { id: 'all', label: 'All Couriers' },
   { id: 'fastest', label: 'Fastest' },
   { id: 'cheapest', label: 'Cheapest' },
-  { id: 'best-rated', label: 'Best Rated' },
+  { id: 'best-rated', label: 'Recommended' }
 ];
 
 export default function Compare() {
@@ -28,11 +28,54 @@ export default function Compare() {
   const [selectedRateId, setSelectedRateId] = useState<string | null>(null);
   const [selectingRate, setSelectingRate] = useState(false);
 
+  const safeRates = Array.isArray(rates) ? rates : [];
+
   useEffect(() => {
     if (shipmentId) {
       dispatch(compareRates(shipmentId));
     }
   }, [dispatch, shipmentId]);
+
+  // -------------------------------------------------------------
+  // Filter logic: display the selected result only and match Best Rated with Recommended
+  // -------------------------------------------------------------
+  const displayedRates = useMemo(() => {
+    if (safeRates.length === 0) return [];
+
+    const ratesCopy = [...safeRates];
+    const currentCheapest = [...ratesCopy].sort((a, b) => a.finalRate - b.finalRate)[0];
+    const currentFastest = [...ratesCopy].sort((a, b) => a.deliveryDays - b.deliveryDays)[0];
+
+    switch (selectedFilter) {
+      case 'fastest':
+        return [currentFastest]; // Shows fastest option only
+      case 'cheapest':
+        return [currentCheapest]; // Shows cheapest option only
+      case 'best-rated': {
+        // Gets the option with "recommended" badge (neither cheapest nor fastest)
+        const recommendedRates = ratesCopy.filter(
+          (r) =>
+            r.shippoRateId !== currentCheapest?.shippoRateId &&
+            r.shippoRateId !== currentFastest?.shippoRateId
+        );
+
+        if (recommendedRates.length > 0) {
+          // If multiple recommended options exist, select the one with the best value
+          recommendedRates.sort(
+            (a, b) => a.finalRate * a.deliveryDays - b.finalRate * b.deliveryDays
+          );
+          return [recommendedRates[0]];
+        }
+
+        // Fallback if no other options exist besides cheapest and fastest (returns best overall value)
+        ratesCopy.sort((a, b) => a.finalRate * a.deliveryDays - b.finalRate * b.deliveryDays);
+        return [ratesCopy[0]];
+      }
+      case 'all':
+      default:
+        return ratesCopy; // Shows all options
+    }
+  }, [safeRates, selectedFilter]);
 
   if (!shipmentId) {
     return (
@@ -45,7 +88,7 @@ export default function Compare() {
     );
   }
 
-  if (loading && rates.length === 0) {
+  if (loading && safeRates.length === 0) {
     return (
       <div className="py-24 text-center">
         <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
@@ -90,9 +133,9 @@ export default function Compare() {
     }
   };
 
-  const sortedRates = [...rates].sort((a, b) => a.finalRate - b.finalRate);
+  const sortedRates = [...safeRates].sort((a, b) => a.finalRate - b.finalRate);
   const cheapestRate = sortedRates[0];
-  const fastestRate = [...rates].sort((a, b) => a.deliveryDays - b.deliveryDays)[0];
+  const fastestRate = [...safeRates].sort((a, b) => a.deliveryDays - b.deliveryDays)[0];
 
   const getBadges = (rate: IRate): BadgeType[] => {
     const badges: BadgeType[] = [];
@@ -110,17 +153,16 @@ export default function Compare() {
 
   return (
     <div className="space-y-6 container mx-auto">
-      {/* Breadcrumb */}
       <Breadcrumb
         items={[
           { label: 'Dashboard', href: '/user' },
           { label: 'New Shipment', href: '/user/newshipment' },
-          { label: 'Compare Prices' },
+          { label: 'Compare Prices' }
         ]}
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             Compare Shipping Rates
@@ -129,13 +171,25 @@ export default function Compare() {
             Choose the best option for your shipment
           </p>
         </div>
-        <Button
-          variant="ghost"
-          className="bg-white"
-          onClick={() => navigate('/user/newshipment')}
-        >
-          Edit Details
-        </Button>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <Button
+            variant="secondary"
+            className="flex-1 sm:flex-none justify-center bg-white dark:bg-gray-800"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+          <Button
+            variant="secondary"
+            className="flex-1 sm:flex-none justify-center bg-white dark:bg-gray-800"
+            onClick={() =>
+              navigate('/user/newshipment', { state: { editShipment: currentShipment } })
+            }
+          >
+            Edit Details
+          </Button>
+        </div>
       </div>
 
       {/* Shipment Summary */}
@@ -148,14 +202,21 @@ export default function Compare() {
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-300">Shipment Details</p>
               <p className="font-semibold text-gray-900 dark:text-gray-100">
-                {currentShipment?.package.weight} kg • {currentShipment?.package.length}x{currentShipment?.package.width}x{currentShipment?.package.height} {currentShipment?.package.units}
+                {currentShipment?.package?.weight
+                  ? `${currentShipment.package.weight} ${currentShipment.package.units === 'cm' ? 'kg' : 'lb'}`
+                  : 'N/A'}{' '}
+                •{' '}
+                {currentShipment?.package?.length
+                  ? `${currentShipment.package.length}x${currentShipment.package.width}x${currentShipment.package.height} ${currentShipment.package.units}`
+                  : 'N/A'}
               </p>
             </div>
           </div>
           <div className="text-right">
             <p className="text-sm text-gray-600 dark:text-gray-300">Route</p>
             <p className="font-semibold text-gray-900 dark:text-gray-100">
-              {currentShipment?.senderAddress.city} → {currentShipment?.receiverAddress.city}
+              {currentShipment?.senderAddress?.city || 'N/A'} →{' '}
+              {currentShipment?.receiverAddress?.city || 'N/A'}
             </p>
           </div>
         </div>
@@ -180,7 +241,7 @@ export default function Compare() {
 
       {/* Comparison Cards */}
       <div className="space-y-4">
-        {rates.map((rate) => (
+        {displayedRates.map((rate) => (
           <Card
             key={rate.shippoRateId}
             hover
@@ -204,11 +265,7 @@ export default function Compare() {
                   </h3>
                   <div className="flex gap-2">
                     {getBadges(rate).map((badge) => (
-                      <Badge
-                        key={badge}
-                        variant={badge}
-                        className="flex items-center gap-1"
-                      >
+                      <Badge key={badge} variant={badge} className="flex items-center gap-1">
                         {getBadgeIcon(badge)}
                         <span className="capitalize">{badge}</span>
                       </Badge>
@@ -242,7 +299,9 @@ export default function Compare() {
               {/* Price & Action */}
               <div className="text-right shrink-0">
                 <div className="mb-2">
-                  <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">${rate.finalRate.toFixed(2)}</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                    ${rate.finalRate.toFixed(2)}
+                  </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">{rate.currency}</p>
                 </div>
                 <Button
@@ -273,9 +332,12 @@ export default function Compare() {
             <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" />
           </div>
           <div className="flex-1">
-            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">Price Protection Guarantee</h4>
+            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
+              Price Protection Guarantee
+            </h4>
             <p className="text-sm text-gray-700 dark:text-gray-300">
-              All prices shown include our platform fee. If you find a better rate within 24 hours of booking, we'll refund the difference.
+              All prices shown include our platform fee. If you find a better rate within 24 hours
+              of booking, we'll refund the difference.
             </p>
           </div>
         </div>

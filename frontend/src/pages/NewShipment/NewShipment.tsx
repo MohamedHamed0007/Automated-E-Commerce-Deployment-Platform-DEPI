@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Package, MapPin, User, Upload, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react';
 import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
@@ -8,7 +8,7 @@ import { Breadcrumb } from '../../components/Breadcrumb';
 import { Select } from '../../components/Select/Select';
 import { StepProgress } from '../../components/StepProgress/StepProgress';
 import toast from 'react-hot-toast';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../redux/hookredux';
 import { createShipment } from '../../redux/thunk/shipmentThunk';
 
@@ -16,26 +16,30 @@ const steps = [
   { label: 'Package Details', description: 'Size & weight' },
   { label: 'Addresses', description: 'Sender & receiver' },
   { label: 'AI Scan', description: 'Optional' },
-  { label: 'Confirmation', description: 'Review' },
+  { label: 'Confirmation', description: 'Review' }
 ];
 
 const packageTypes = [
   { value: 'document', label: 'Document' },
   { value: 'parcel', label: 'Parcel' },
   { value: 'package', label: 'Package' },
-  { value: 'freight', label: 'Freight' },
+  { value: 'freight', label: 'Freight' }
 ];
 
 const weightUnits = [
   { value: 'kg', label: 'Kilograms (kg)' },
-  { value: 'lb', label: 'Pounds (lb)' },
+  { value: 'lb', label: 'Pounds (lb)' }
 ];
 
 export default function NewShipment() {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useAppDispatch();
   const { loading } = useAppSelector((state) => state.shipment);
   const user = useAppSelector((state) => state.auth.user);
+
+  // Catch the shipment data if coming from "Edit Details"
+  const editShipment = location.state?.editShipment;
 
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({
@@ -60,8 +64,38 @@ export default function NewShipment() {
     receiverCity: '',
     receiverState: '',
     receiverZip: '',
-    aiImage: null as File | null,
+    aiImage: null as File | null
   });
+
+  // Pre-fill form data when editShipment is present
+  useEffect(() => {
+    if (editShipment) {
+      setFormData({
+        packageType: 'parcel',
+        weight: editShipment.package?.weight?.toString() || '',
+        weightUnit: editShipment.package?.units === 'cm' ? 'kg' : 'lb',
+        length: editShipment.package?.length?.toString() || '',
+        width: editShipment.package?.width?.toString() || '',
+        height: editShipment.package?.height?.toString() || '',
+        description: '',
+        senderName: editShipment.senderAddress?.name || '',
+        senderPhone: editShipment.senderAddress?.phone || '',
+        senderAddress: editShipment.senderAddress?.street || '',
+        senderCity: editShipment.senderAddress?.city || '',
+        senderState: editShipment.senderAddress?.state || '',
+        senderZip: editShipment.senderAddress?.zip || '',
+        senderEmail: editShipment.senderAddress?.email || '',
+        receiverName: editShipment.receiverAddress?.name || '',
+        receiverPhone: editShipment.receiverAddress?.phone || '',
+        receiverEmail: editShipment.receiverAddress?.email || '',
+        receiverAddress: editShipment.receiverAddress?.street || '',
+        receiverCity: editShipment.receiverAddress?.city || '',
+        receiverState: editShipment.receiverAddress?.state || '',
+        receiverZip: editShipment.receiverAddress?.zip || '',
+        aiImage: null
+      });
+    }
+  }, [editShipment]);
 
   const update = (field: string, value: string) =>
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -90,7 +124,7 @@ export default function NewShipment() {
     if (!canProceed()) {
       toast.error('Please fill all required fields in this step.', {
         duration: 4000,
-        position: 'top-right',
+        position: 'top-right'
       });
       return;
     }
@@ -103,8 +137,9 @@ export default function NewShipment() {
           length: parseFloat(formData.length) || 0,
           width: parseFloat(formData.width) || 0,
           height: parseFloat(formData.height) || 0,
-          units: 'cm' as const,
-          weight: parseFloat(formData.weight) || 0,
+          // Correctly map units to avoid backend status errors
+          units: formData.weightUnit === 'kg' ? 'cm' : 'in',
+          weight: parseFloat(formData.weight) || 0
         },
         senderAddress: {
           name: formData.senderName,
@@ -114,7 +149,7 @@ export default function NewShipment() {
           city: formData.senderCity,
           state: formData.senderState,
           zip: formData.senderZip,
-          country: 'US',
+          country: 'US'
         },
         receiverAddress: {
           name: formData.receiverName,
@@ -124,8 +159,8 @@ export default function NewShipment() {
           city: formData.receiverCity,
           state: formData.receiverState,
           zip: formData.receiverZip,
-          country: 'US',
-        },
+          country: 'US'
+        }
       };
 
       try {
@@ -147,21 +182,15 @@ export default function NewShipment() {
     }
   };
 
-  const packageTypeLabel =
-    packageTypes.find((p) => p.value === formData.packageType)?.label ?? '';
+  const packageTypeLabel = packageTypes.find((p) => p.value === formData.packageType)?.label ?? '';
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto text-gray-900 dark:text-gray-100">
-      <Breadcrumb
-        items={[
-          { label: 'Dashboard', href: '/user' },
-          { label: 'New Shipment' },
-        ]}
-      />
+      <Breadcrumb items={[{ label: 'Dashboard', href: '/user' }, { label: 'New Shipment' }]} />
 
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Create New Shipment
+          {editShipment ? 'Edit Shipment Details' : 'Create New Shipment'}
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mt-1">
           Fill in the details to compare shipping rates
@@ -175,10 +204,10 @@ export default function NewShipment() {
 
         {/* STEP 1 — Package Details */}
         {currentStep === 0 && (
-          <div className="space-y-6  ">
-            <div className="flex items-center gap-3 mb-6 ">
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/40 rounded-xl flex items-center justify-center">
-                <Package className="w-6 h-6 text-blue-600  dark:text-blue-400" />
+                <Package className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -216,19 +245,19 @@ export default function NewShipment() {
             <div className="grid grid-cols-3 gap-4">
               <Input
                 type="number"
-                label="Length (cm)"
+                label={`Length (${formData.weightUnit === 'kg' ? 'cm' : 'in'})`}
                 value={formData.length}
                 onChange={(e) => update('length', e.target.value)}
               />
               <Input
                 type="number"
-                label="Width (cm)"
+                label={`Width (${formData.weightUnit === 'kg' ? 'cm' : 'in'})`}
                 value={formData.width}
                 onChange={(e) => update('width', e.target.value)}
               />
               <Input
                 type="number"
-                label="Height (cm)"
+                label={`Height (${formData.weightUnit === 'kg' ? 'cm' : 'in'})`}
                 value={formData.height}
                 onChange={(e) => update('height', e.target.value)}
               />
@@ -267,13 +296,17 @@ export default function NewShipment() {
                   label="Full Name"
                   placeholder="John Doe"
                   value={formData.senderName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => update('senderName', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    update('senderName', e.target.value)
+                  }
                 />
                 <Input
                   label="Phone Number"
                   placeholder="+1 234 567 890"
                   value={formData.senderPhone}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => update('senderPhone', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    update('senderPhone', e.target.value)
+                  }
                 />
               </div>
 
@@ -283,7 +316,9 @@ export default function NewShipment() {
                   label="Email"
                   placeholder="john@example.com"
                   value={formData.senderEmail || user?.email || ''}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => update('senderEmail', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    update('senderEmail', e.target.value)
+                  }
                 />
               </div>
 
@@ -292,7 +327,9 @@ export default function NewShipment() {
                   label="Street Address"
                   placeholder="123 Main St"
                   value={formData.senderAddress}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => update('senderAddress', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    update('senderAddress', e.target.value)
+                  }
                 />
               </div>
 
@@ -341,13 +378,17 @@ export default function NewShipment() {
                   label="Full Name"
                   placeholder="Jane Smith"
                   value={formData.receiverName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => update('receiverName', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    update('receiverName', e.target.value)
+                  }
                 />
                 <Input
                   label="Phone Number"
                   placeholder="+44 20 1234 5678"
                   value={formData.receiverPhone}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => update('receiverPhone', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    update('receiverPhone', e.target.value)
+                  }
                 />
               </div>
 
@@ -357,7 +398,9 @@ export default function NewShipment() {
                   label="Email"
                   placeholder="jane@example.com"
                   value={formData.receiverEmail}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => update('receiverEmail', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    update('receiverEmail', e.target.value)
+                  }
                   required
                 />
               </div>
@@ -367,7 +410,9 @@ export default function NewShipment() {
                   label="Street Address"
                   placeholder="456 Baker St"
                   value={formData.receiverAddress}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => update('receiverAddress', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    update('receiverAddress', e.target.value)
+                  }
                 />
               </div>
 
@@ -453,7 +498,8 @@ export default function NewShipment() {
 
             <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
               <p className="text-sm text-blue-800 dark:text-blue-300">
-                <strong>Tip:</strong> Place a standard object next to your package for accurate measurements.
+                <strong>Tip:</strong> Place a standard object next to your package for accurate
+                measurements.
               </p>
             </div>
           </div>
@@ -484,10 +530,24 @@ export default function NewShipment() {
                   <h3 className="font-semibold text-gray-900 dark:text-white">Package Details</h3>
                 </div>
                 <div className="space-y-2 text-sm">
-                  <div><strong>Type:</strong> {packageTypeLabel}</div>
-                  <div><strong>Weight:</strong> {formData.weight ? `${formData.weight} ${formData.weightUnit}` : '—'}</div>
-                  <div><strong>Dimensions:</strong> {formData.length && formData.width && formData.height ? `${formData.length} × ${formData.width} × ${formData.height} cm` : '—'}</div>
-                  {formData.description && <div><strong>Description:</strong> {formData.description}</div>}
+                  <div>
+                    <strong>Type:</strong> {packageTypeLabel}
+                  </div>
+                  <div>
+                    <strong>Weight:</strong>{' '}
+                    {formData.weight ? `${formData.weight} ${formData.weightUnit}` : '—'}
+                  </div>
+                  <div>
+                    <strong>Dimensions:</strong>{' '}
+                    {formData.length && formData.width && formData.height
+                      ? `${formData.length} × ${formData.width} × ${formData.height} ${formData.weightUnit === 'kg' ? 'cm' : 'in'}`
+                      : '—'}
+                  </div>
+                  {formData.description && (
+                    <div>
+                      <strong>Description:</strong> {formData.description}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -498,7 +558,9 @@ export default function NewShipment() {
                   <h3 className="font-semibold text-gray-900 dark:text-white">AI Scan</h3>
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {formData.aiImage ? `📎 ${formData.aiImage.name}` : 'No image uploaded (optional)'}
+                  {formData.aiImage
+                    ? `📎 ${formData.aiImage.name}`
+                    : 'No image uploaded (optional)'}
                 </p>
               </div>
 
@@ -509,24 +571,46 @@ export default function NewShipment() {
                   <h3 className="font-semibold text-gray-900 dark:text-white">Sender</h3>
                 </div>
                 <div className="space-y-2 text-sm">
-                  <div><strong>Name:</strong> {formData.senderName || '—'}</div>
-                  <div><strong>Phone:</strong> {formData.senderPhone || '—'}</div>
-                  <div><strong>Address:</strong> {formData.senderAddress || '—'}</div>
-                  <div><strong>City / State / ZIP:</strong> {[formData.senderCity, formData.senderState, formData.senderZip].filter(Boolean).join(', ') || '—'}</div>
+                  <div>
+                    <strong>Name:</strong> {formData.senderName || '—'}
+                  </div>
+                  <div>
+                    <strong>Phone:</strong> {formData.senderPhone || '—'}
+                  </div>
+                  <div>
+                    <strong>Address:</strong> {formData.senderAddress || '—'}
+                  </div>
+                  <div>
+                    <strong>City / State / ZIP:</strong>{' '}
+                    {[formData.senderCity, formData.senderState, formData.senderZip]
+                      .filter(Boolean)
+                      .join(', ') || '—'}
+                  </div>
                 </div>
               </div>
 
               {/* Receiver */}
               <div className="bg-gray-50 dark:bg-gray-800/60 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center gap-3 mb-4">
                   <MapPin className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                   <h3 className="font-semibold text-gray-900 dark:text-white">Receiver</h3>
                 </div>
                 <div className="space-y-2 text-sm">
-                  <div><strong>Name:</strong> {formData.receiverName || '—'}</div>
-                  <div><strong>Phone:</strong> {formData.receiverPhone || '—'}</div>
-                  <div><strong>Address:</strong> {formData.receiverAddress || '—'}</div>
-                  <div><strong>City / State / ZIP:</strong> {[formData.receiverCity, formData.receiverState, formData.receiverZip].filter(Boolean).join(', ') || '—'}</div>
+                  <div>
+                    <strong>Name:</strong> {formData.receiverName || '—'}
+                  </div>
+                  <div>
+                    <strong>Phone:</strong> {formData.receiverPhone || '—'}
+                  </div>
+                  <div>
+                    <strong>Address:</strong> {formData.receiverAddress || '—'}
+                  </div>
+                  <div>
+                    <strong>City / State / ZIP:</strong>{' '}
+                    {[formData.receiverCity, formData.receiverState, formData.receiverZip]
+                      .filter(Boolean)
+                      .join(', ') || '—'}
+                  </div>
                 </div>
               </div>
             </div>
@@ -535,18 +619,14 @@ export default function NewShipment() {
 
         {/* Navigation Buttons */}
         <div className="flex justify-between mt-8">
-          <Button
-            variant="secondary"
-            onClick={handleBack}
-            disabled={currentStep === 0}
-          >
+          <Button variant="secondary" onClick={handleBack} disabled={currentStep === 0}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
 
-          <Button onClick={handleNext}>
+          <Button onClick={handleNext} loading={loading}>
             {currentStep === steps.length - 1 ? 'Compare Rates' : 'Next'}
-            <ArrowRight className="w-4 h-4 ml-2" />
+            {!loading && <ArrowRight className="w-4 h-4 ml-2" />}
           </Button>
         </div>
       </Card>

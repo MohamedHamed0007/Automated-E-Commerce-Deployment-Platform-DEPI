@@ -101,7 +101,7 @@ export interface IShipment {
   comparisonResults: IRate[];
   shippoShipmentId?: string | null;
   selectedRate?: IRate | null;
-  status: 'draft' | 'compared' | 'booked' | 'cancelled';
+  status: 'draft' | 'compared' | 'booked' | 'cancelled' | 'delivered';
   paidOn?: string;
   trackingNumber?: string;
   trackingUrl?: string;
