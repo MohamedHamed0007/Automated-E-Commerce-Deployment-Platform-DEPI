@@ -1,5 +1,4 @@
 import axiosInstance from "@/lib/axiosInstance";
-import { buildInternalApiUrl } from "@/lib/internalApiUrl";
 import type { User } from "@/types/User";
 
 interface ApiResponse<T> {
@@ -9,6 +8,7 @@ interface ApiResponse<T> {
 
 const ADMIN_USERS_PATH = "/admin/users";
 
+// الفانكشن دي ممتازة سيبها زي ما هي
 const unwrapResponse = <T>(payload: T | ApiResponse<T>): T => {
   if (
     payload !== null &&
@@ -18,25 +18,25 @@ const unwrapResponse = <T>(payload: T | ApiResponse<T>): T => {
   ) {
     return payload.data as T;
   }
-
   return payload as T;
 };
 
 export const getUsers = async (): Promise<User[]> => {
+  // 🔥 التعديل هنا: شلنا buildInternalApiUrl واستخدمنا المسار مباشرة
   const response = await axiosInstance.get<ApiResponse<User[]> | User[]>(
-    buildInternalApiUrl(ADMIN_USERS_PATH)
+    ADMIN_USERS_PATH 
   );
   return unwrapResponse(response.data);
 };
 
 export const getUserById = async (id: string): Promise<User> => {
   const response = await axiosInstance.get<ApiResponse<User> | User>(
-    buildInternalApiUrl(`${ADMIN_USERS_PATH}/${id}`)
+    `${ADMIN_USERS_PATH}/${id}`
   );
   return unwrapResponse(response.data);
 };
 
 export const deleteUserById = async (id: string): Promise<string> => {
-  await axiosInstance.delete(buildInternalApiUrl(`${ADMIN_USERS_PATH}/${id}`));
+  await axiosInstance.delete(`${ADMIN_USERS_PATH}/${id}`);
   return id;
 };

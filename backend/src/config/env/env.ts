@@ -3,19 +3,29 @@ import fs from "fs";
 import path from "path";
 import { Shippo } from "shippo";
 
-const envDir = path.resolve(process.cwd(), "env");
 const envFileBase =
   process.env.NODE_ENV === "production" ? ".env.prod" : ".env.dev";
-let envPath = path.join(envDir, envFileBase);
+const envCandidates = [
+  path.resolve(process.cwd(), envFileBase),
+  path.resolve(process.cwd(), "env", envFileBase),
+  path.resolve(process.cwd(), ".env.dev"),
+  path.resolve(process.cwd(), "env", ".env.dev"),
+];
 
-if (!fs.existsSync(envPath)) {
-  console.warn(`WARNING: ${envPath} not found. Falling back to .env.dev.`);
-  envPath = path.join(envDir, ".env.dev");
+const envPath = envCandidates.find((candidate) => fs.existsSync(candidate));
+
+if (!envPath) {
+  console.warn(
+    `WARNING: No env file found. Checked: ${envCandidates.join(", ")}`
+  );
 }
 
-const result = dotenv.config({ path: envPath });
+const result = dotenv.config(envPath ? { path: envPath } : undefined);
 if (result.error) {
-  console.error(`Failed to load env from ${envPath}:`, result.error);
+  console.error(
+    `Failed to load env${envPath ? ` from ${envPath}` : ""}:`,
+    result.error
+  );
 }
 
 export const env = {
