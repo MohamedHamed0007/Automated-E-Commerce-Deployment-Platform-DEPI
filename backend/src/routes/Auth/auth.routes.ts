@@ -1,5 +1,6 @@
 import express from 'express';
 import {
+  adminLogin,
   ForgotPassword,
   login,
   logout,
@@ -15,7 +16,9 @@ const authRouter = express.Router();
 
 authRouter.post('/register', authlimit, validateBody(registerValidation), register);
 
-authRouter.post('/login', authlimit, login);
+authRouter.post('/login', login);
+
+authRouter.post('/admin/login', adminLogin);
 
 authRouter.post('/refresh-token', refreshTokenController);
 

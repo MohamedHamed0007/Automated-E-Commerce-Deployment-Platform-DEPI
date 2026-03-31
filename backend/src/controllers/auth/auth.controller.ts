@@ -34,18 +34,44 @@ export const register = asyncHandler(async (req, res) => {
 // =====================
 // Login user
 // =====================
+// src/controllers/authController.ts
+
 export const login = asyncHandler(async (req, res) => {
-  const { user, accessToken, refreshToken } = await loginUser(req.body.email, req.body.password);
-res.cookie('refreshToken', refreshToken, {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax',
-  maxAge: 7 * 24 * 60 * 60 * 1000,
-  path: '/'
+  const { user, accessToken, refreshToken } = await loginUser(
+    req.body.email, 
+    req.body.password, 
+    'user'
+  );
+
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: '/'
+  });
+
+  successResponse(res, 'login successful', { user, accessToken }, 200);
 });
 
-  successResponse(res, 'Login successful', { user, accessToken }, 200);
+export const adminLogin = asyncHandler(async (req, res) => {
+  const { user, accessToken, refreshToken } = await loginUser(
+    req.body.email, 
+    req.body.password, 
+    'admin'
+  );
+
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: '/'
+  });
+
+  successResponse(res, 'admin login successful', { user, accessToken }, 200);
 });
+
 
 // =====================
 // Refresh access token
