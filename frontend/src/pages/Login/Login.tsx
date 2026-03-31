@@ -57,13 +57,12 @@ const Login = () => {
 
         {/* Title Section */}
         <div className="relative z-10">
-          <h1 className="text-6xl font-black leading-[0.9] mb-6 text-white tracking-tight mix-blend-screen">
-            Compare
-            <br />
-            <span className="text-blue-400 italic drop-shadow-lg">shipping</span> rates globally.
+          <h1 className="text-6xl font-black leading-[1.1] mb-6 text-white tracking-tight mix-blend-screen">
+            Compare 
+            <span className="text-blue-400 italic drop-shadow-lg "> shipping</span> rates globally.
           </h1>
 
-          <p className="text-lg text-slate-300 font-medium max-w-sm leading-relaxed">
+          <p className="text-sm text-slate-300 font-medium max-w-sm leading-relaxed">
             The world's most advanced logistics comparison platform. Save up to 40% on your
             international freight costs today.
           </p>
@@ -85,10 +84,10 @@ const Login = () => {
       </div>
 
       {/* RIGHT PANEL: Login Form */}
-      <div className="flex items-center justify-center h-full px-6 bg-gray-50 dark:bg-slate-800">
+      <div className="flex items-center justify-center h-full px-6 bg-gray-50 dark:bg-slate-900">
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="w-full max-w-md bg-white dark:bg-slate-700 p-8 rounded-2xl shadow-xl transition-colors duration-300"
+          className="w-full max-w-md bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl transition-colors duration-300"
         >
           <h2 className="text-4xl font-bold mb-2 text-gray-800 dark:text-white">Welcome Back</h2>
           <p className="text-gray-500 dark:text-slate-400 mb-8">
@@ -97,16 +96,16 @@ const Login = () => {
 
           {/* EMAIL INPUT */}
           <div className="mb-5">
-            <label className="text-sm text-gray-600 dark:text-slate-400">Email address</label>
+            <label className="text-sm text-gray-600 dark:text-slate-300">Email address</label>
             <input
               {...register('email')}
               type="email"
               placeholder="name@company.com"
               className={`mt-1 w-full px-4 py-3 rounded-lg border outline-none transition
-                focus:ring-2 focus:ring-blue-500
-                ${errors.email ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'}
-                bg-white dark:bg-slate-700 text-gray-900 dark:text-white
-                placeholder-gray-400 dark:placeholder:text-gray-500`}
+          focus:ring-2 focus:ring-blue-500
+          ${errors.email ? 'border-red-500' : 'border-gray-300 dark:border-slate-700'}
+          bg-white dark:bg-slate-900 text-gray-900 dark:text-white
+          placeholder-gray-400 dark:placeholder:text-slate-500`}
             />
             {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
           </div>
@@ -114,8 +113,8 @@ const Login = () => {
           {/* PASSWORD INPUT */}
           <div className="mb-6">
             <div className="flex justify-between text-sm">
-              <label className="text-gray-700 dark:text-slate-400">Password</label>
-              <Link to="/forgot" className="text-blue-600 hover:underline">
+              <label className="text-gray-700 dark:text-slate-300">Password</label>
+              <Link to="/forgot" className="text-blue-500 hover:underline">
                 Forgot password?
               </Link>
             </div>
@@ -124,10 +123,10 @@ const Login = () => {
               type="password"
               placeholder="••••••••"
               className={`mt-1 w-full px-4 py-3 rounded-lg border outline-none transition
-                focus:ring-2 focus:ring-blue-500
-                ${errors.password ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'}
-                bg-white dark:bg-slate-700 text-gray-900 dark:text-white
-                placeholder-gray-400 dark:placeholder:text-gray-500`}
+          focus:ring-2 focus:ring-blue-500
+          ${errors.password ? 'border-red-500' : 'border-gray-300 dark:border-slate-700'}
+          bg-white dark:bg-slate-900 text-gray-900 dark:text-white
+          placeholder-gray-400 dark:placeholder:text-slate-500`}
             />
             {errors.password && (
               <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
@@ -139,7 +138,7 @@ const Login = () => {
             type="submit"
             disabled={!isValid || loading}
             className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold
-                       hover:bg-blue-700 transition disabled:opacity-50 flex justify-center items-center gap-2"
+                 hover:bg-blue-700 transition disabled:opacity-50 flex justify-center items-center gap-2"
           >
             {loading && (
               <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
@@ -162,9 +161,9 @@ const Login = () => {
           </button>
 
           {/* FOOTER */}
-          <p className="text-center text-sm mt-7 text-gray-700 dark:text-slate-400">
+          <p className="text-center text-sm mt-7 text-gray-700 dark:text-slate-300">
             Don't have an account?{' '}
-            <Link to="/signup" className="text-blue-600 cursor-pointer hover:underline">
+            <Link to="/signup" className="text-blue-500 cursor-pointer hover:underline">
               Sign up for free
             </Link>
           </p>
