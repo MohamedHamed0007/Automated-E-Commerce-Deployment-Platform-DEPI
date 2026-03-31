@@ -42,7 +42,7 @@ const Login = () => {
       navigate('/user');
     } else {
       // Display the error message returned from the backend/thunk
-      toast.error((resultAction.payload as string) || 'Login failed');
+      toast.error( 'Login failed - Invalid email or password');
     }
   };
 
