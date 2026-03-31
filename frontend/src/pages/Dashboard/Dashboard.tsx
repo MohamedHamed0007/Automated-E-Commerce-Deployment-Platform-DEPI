@@ -9,7 +9,7 @@ import {
   Wallet
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
 import {
@@ -25,50 +25,6 @@ import { Badge } from '../../components/Badge';
 import { Breadcrumb } from '../../components/Breadcrumb';
 import { useAppDispatch, useAppSelector } from '../../redux/hookredux';
 import { getUserShipments } from '../../redux/thunk/shipmentThunk';
-
-const stats = [
-  {
-    label: 'Total Shipments',
-    value: '124',
-    change: '+12%',
-    trend: 'up',
-    icon: Package,
-    color: 'blue'
-  },
-  {
-    label: 'Active Shipments',
-    value: '8',
-    change: '3 arriving today',
-    trend: 'neutral',
-    icon: TruckIcon,
-    color: 'teal'
-  },
-  {
-    label: 'Total Savings',
-    value: '$2,450',
-    change: '+18%',
-    trend: 'up',
-    icon: DollarSign,
-    color: 'green'
-  },
-  {
-    label: 'Wallet Balance',
-    value: '$850.00',
-    change: 'Add funds',
-    trend: 'neutral',
-    icon: Wallet,
-    color: 'purple'
-  }
-];
-
-const chartData = [
-  { month: 'Jan', shipments: 24 },
-  { month: 'Feb', shipments: 32 },
-  { month: 'Mar', shipments: 28 },
-  { month: 'Apr', shipments: 38 },
-  { month: 'May', shipments: 42 },
-  { month: 'Jun', shipments: 48 }
-];
 
 const iconBg = ['bg-blue-100', 'bg-teal-100', 'bg-green-100', 'bg-purple-100'];
 const iconColor = ['text-blue-600', 'text-teal-600', 'text-green-600', 'text-purple-600'];
@@ -87,6 +43,32 @@ export default function Dashboard() {
   useEffect(() => {
     dispatch(getUserShipments());
   }, [dispatch]);
+
+  // ---------------------------------------------------------
+  // 📈 Logic to generate DYNAMIC chart data from shipments
+  // ---------------------------------------------------------
+  const chartData = useMemo(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const now = new Date();
+    const result = [];
+
+    // Generate the last 6 months (including current)
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthName = months[d.getMonth()];
+      const year = d.getFullYear();
+      const monthIndex = d.getMonth();
+
+      // Count shipments that fall into this month/year
+      const count = shipments.filter(s => {
+        const shipDate = new Date(s.createdAt);
+        return shipDate.getMonth() === monthIndex && shipDate.getFullYear() === year;
+      }).length;
+
+      result.push({ month: monthName, shipments: count });
+    }
+    return result;
+  }, [shipments]);
 
   const bookedShipments = shipments.filter((s) => s.status === 'booked');
   const lastShipment = shipments[0];
@@ -203,12 +185,8 @@ export default function Dashboard() {
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                 Shipment Activity
               </h3>
-              <p className="text-sm text-slate-500">Monthly delivery performance</p>
+              <p className="text-sm text-slate-500">Last 6 months performance</p>
             </div>
-            <select className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300">
-              <option>Last 6 months</option>
-              <option>Last year</option>
-            </select>
           </div>
           <div className="h-[250px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -227,7 +205,12 @@ export default function Dashboard() {
                   tick={{ fill: '#94a3b8', fontSize: 12 }}
                   dy={10}
                 />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fill: '#94a3b8', fontSize: 12 }} 
+                  allowDecimals={false}
+                />
                 <Tooltip
                   contentStyle={{
                     borderRadius: '8px',
