@@ -64,7 +64,7 @@ const Signup = () => {
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-gradient-to-br from-white to-slate-100 dark:from-[#080B15] dark:to-[#0E1424] text-slate-900 dark:text-slate-100 font-sans">
       {/* LEFT PANEL */}
-      <div className="hidden lg:flex flex-col justify-between h-full px-20 py-16 bg-[#0E1526] border-r border-slate-700/20 relative overflow-hidden">
+      <div className="hidden lg:flex flex-col h-full px-20 py-12 bg-[#0E1526] border-r border-slate-700/20 relative overflow-hidden">
         {/* Glow Background */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute -top-32 -left-32 w-[420px] h-[420px] bg-blue-600/40 rounded-full blur-[140px]" />
@@ -72,12 +72,12 @@ const Signup = () => {
         </div>
 
         {/* Logo */}
-        <div className="relative z-10 flex items-center gap-3">
+        {/* <div className="relative z-10 flex items-center gap-3">
           <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-400 rounded-xl flex items-center justify-center text-2xl shadow-lg shadow-blue-500/30 text-white animate-pulse">
             🚢
           </div>
           <span className="text-2xl font-black tracking-tight text-white">ShipSphere</span>
-        </div>
+        </div> */}
 
         {/* Title */}
         <div className="relative z-10">
