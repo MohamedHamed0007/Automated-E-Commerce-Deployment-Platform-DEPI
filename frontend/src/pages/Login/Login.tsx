@@ -48,29 +48,40 @@ const Login = () => {
 
   return (
     <div className="min-h-screen lg:h-screen grid lg:grid-cols-2 bg-white dark:bg text-gray-900 dark:text-white">
-      {/* LEFT PANEL: Branding & Marketing */}
-      <div className="hidden lg:flex flex-col justify-around h-full px-16 py-12 bg-gradient-to-br from-blue-600 to-blue-700 text-white">
-        <div className="flex items-center gap-3">
-          <div className="bg-white/20 p-3 rounded-lg text-xl">🚚</div>
-          <span className="text-xl font-semibold tracking-wide">ShipSphere</span>
+      <div className="hidden lg:flex flex-col h-full px-20 py-12 bg-[#0E1526] border-r border-slate-700/20 relative overflow-hidden">
+        {/* Glow Background */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -top-32 -left-32 w-[420px] h-[420px] bg-blue-600/40 rounded-full blur-[140px]" />
+          <div className="absolute bottom-0 right-0 w-[380px] h-[380px] bg-purple-600/30 rounded-full blur-[160px]" />
         </div>
 
-        <div className="max-w-xl">
-          <h1 className="text-5xl font-bold leading-tight mb-6">
-            Compare shipping rates globally in seconds
+        {/* Title Section */}
+        <div className="relative z-10">
+          <h1 className="text-6xl font-black leading-[0.9] mb-6 text-white tracking-tight mix-blend-screen">
+            Compare
+            <br />
+            <span className="text-blue-400 italic drop-shadow-lg">shipping</span> rates globally.
           </h1>
-          <p className="text-lg opacity-90">
+
+          <p className="text-lg text-slate-300 font-medium max-w-sm leading-relaxed">
             The world's most advanced logistics comparison platform. Save up to 40% on your
             international freight costs today.
           </p>
         </div>
 
-        <img
-          src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d"
-          alt="Logistics background"
-          className="rounded-2xl shadow-2xl w-full max-h-65 object-cover"
-        />
-        <div className="text-center text-sm opacity-80">Enterprise Grade Security</div>
+        {/* Image */}
+        <div className="relative z-10 group mt-10">
+          <img
+            src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d"
+            alt="Logistics"
+            className="
+        rounded-2xl shadow-2xl w-full aspect-video object-cover border border-white/10
+        grayscale-[0.4] group-hover:grayscale-0 transition-all duration-700 transform group-hover:scale-[1.02]
+      "
+          />
+        </div>
+
+        <div className="relative z-10 text-slate-400 text-sm mt-4">Enterprise Grade Security</div>
       </div>
 
       {/* RIGHT PANEL: Login Form */}
@@ -128,7 +139,7 @@ const Login = () => {
             type="submit"
             disabled={!isValid || loading}
             className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold
-                        hover:bg-blue-700 transition disabled:opacity-50 flex justify-center items-center gap-2"
+                       hover:bg-blue-700 transition disabled:opacity-50 flex justify-center items-center gap-2"
           >
             {loading && (
               <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">

@@ -71,13 +71,6 @@ const Signup = () => {
           <div className="absolute bottom-0 right-0 w-[380px] h-[380px] bg-purple-600/30 rounded-full blur-[160px]" />
         </div>
 
-        {/* Logo */}
-        {/* <div className="relative z-10 flex items-center gap-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-400 rounded-xl flex items-center justify-center text-2xl shadow-lg shadow-blue-500/30 text-white animate-pulse">
-            🚢
-          </div>
-          <span className="text-2xl font-black tracking-tight text-white">ShipSphere</span>
-        </div> */}
 
         {/* Title */}
         <div className="relative z-10">
