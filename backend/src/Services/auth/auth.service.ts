@@ -47,12 +47,20 @@ export const registerUser = async (userData: RegisterData): Promise<IUserSafe> =
 
 // ========================= LOGIN =========================
 
-export const loginUser = async (email: string, password: string) => {
+// src/services/authService.ts
+
+export const loginUser = async (email: string, password: string, requiredRole: string = 'user') => {
   const user = await User.findOne({ email }).select('+passwordHash');
+  
   if (!user) throw createUnauthorizedError('Invalid email or password');
 
   const isPasswordValid = await comparePassword(password, user.passwordHash);
   if (!isPasswordValid) throw createUnauthorizedError('Invalid email or password');
+
+
+  if (user.role !== requiredRole) {
+    throw createForbiddenError(`Access denied. This portal is for ${requiredRole}s only.`);
+  }
 
   const payload = {
     userId: user._id.toString(),
@@ -67,6 +75,7 @@ export const loginUser = async (email: string, password: string) => {
     token: refreshToken,
     expireAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
   });
+  
   user.lastLogin = new Date();
   await user.save();
 
