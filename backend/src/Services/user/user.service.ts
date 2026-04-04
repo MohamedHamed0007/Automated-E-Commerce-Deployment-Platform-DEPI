@@ -37,6 +37,10 @@ export const updateProfile = async (userId: string, updatedData: any): Promise<I
     .select('-passwordHash -refreshTokens')
     .lean<IUserSafe>();
 
+  if (!user) {
+    throw createNotFoundError('user not found');
+  }
+
   return user;
 };
 

@@ -1,6 +1,6 @@
 
 import express, { Application, Request, Response } from "express";
-import {env} from "../src/config/env/env"
+import {env} from "./config/env/env"
 import { createServer } from 'http';
 import { createSocketServer } from './config/Socket/Socket.server';
 import bootstrap from "./app";

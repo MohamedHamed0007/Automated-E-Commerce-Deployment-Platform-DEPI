@@ -66,7 +66,8 @@ function getChatId(value: UnknownRecord) {
     asString(value._id) ||
     asString(value.id) ||
     asString(value.chatId) ||
-    asString(value.chat?._id)
+    (isRecord(value.chat) ? asString(value.chat._id) : undefined) ||
+    undefined
   );
 }
 
@@ -100,7 +101,7 @@ function normalizeChatSummary(rawChat: unknown): ChatSummary {
   const status = asString(chat.status, asBoolean(chat.closed) ? "closed" : "open");
 
   return {
-    _id: getChatId(chat),
+    _id: getChatId(chat) || "unknown",
     participantName:
       (participant && (asString(participant.fullName) || asString(participant.name))) ||
       asString(chat.participantName) ||

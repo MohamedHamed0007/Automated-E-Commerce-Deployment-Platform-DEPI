@@ -205,6 +205,9 @@ async function getCollectionByCandidates(candidates: string[]) {
   await connectToDatabase();
 
   const db = mongoose.connection.db;
+  if (!db) {
+    throw new Error('Database connection not established');
+  }
   const collections = await db.listCollections().toArray();
   const collectionNames = new Set(collections.map((collection) => collection.name));
 
@@ -227,9 +230,10 @@ function toObjectId(id: string) {
 function buildChatFilter(chatId: string) {
   const objectId = toObjectId(chatId);
 
-  return objectId
-    ? { $or: [{ _id: objectId }, { id: chatId }, { chatId }] }
-    : { $or: [{ _id: chatId }, { id: chatId }, { chatId }] };
+  if (objectId) {
+    return { $or: [{ _id: objectId }, { id: chatId }, { chatId }] };
+  }
+  return { $or: [{ id: chatId }, { chatId }] };
 }
 
 function buildMessageFilter(chatId: string) {
@@ -400,7 +404,7 @@ export async function appendMessage(chatId: string, text: string) {
   }
 
   await chatCollection.updateOne(filter, {
-    $push: { messages: messageDocument },
+    $push: { messages: messageDocument } as any,
     $set: {
       updatedAt: now,
       lastMessagePreview: text,
@@ -423,6 +427,9 @@ export async function createChatThread(input: CreateChatInput) {
   await connectToDatabase();
 
   const db = mongoose.connection.db;
+  if (!db) {
+    throw new Error('Database connection not established');
+  }
   const chatCollection =
     (await getChatCollection()) ?? db.collection(CHAT_COLLECTION_CANDIDATES[0]);
 
