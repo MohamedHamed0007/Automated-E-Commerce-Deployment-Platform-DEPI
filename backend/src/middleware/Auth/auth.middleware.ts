@@ -1,5 +1,6 @@
 import rateLimit from 'express-rate-limit';
 import { Request, Response, NextFunction } from 'express';
+import { Types } from 'mongoose';
 import { createForbiddenError, createUnauthorizedError } from '../../utils/ApiErrors/ApiErrors';
 import { asyncHandler } from '../../utils/AsyncHandler/asyncHandler.utils';
 import { verifyToken } from '../../utils/JWT/jwt.util';
@@ -8,7 +9,11 @@ import { verifyToken } from '../../utils/JWT/jwt.util';
 declare global {
   namespace Express {
     interface Request {
-      user?: any;
+      user?: {
+        userId: string;
+        email?: string;
+        role?: 'user' | 'admin' | 'customer' | 'driver' | 'guest';
+      };
     }
   }
 }
@@ -24,6 +29,14 @@ export const authlimit = rateLimit({
   legacyHeaders: false,
   skipSuccessfulRequests: true
 });
+
+const getGuestIdFromRequest = (req: Request): string | undefined => {
+  const guestId = String(req.headers['x-guest-id'] ?? req.query.guestId ?? '').trim();
+  if (guestId && Types.ObjectId.isValid(guestId)) {
+    return guestId;
+  }
+  return undefined;
+};
 
 // ----------------------
 //     AUTH MIDDLEWARE
@@ -42,12 +55,38 @@ export const authentication = asyncHandler(
     if (!token) {
       throw createUnauthorizedError('no token provided');
     }
-    console.log('TOKEN RECEIVED:', req.headers.authorization);
-    console.log('COOKIE TOKEN:', req.cookies?.accessToken);
+   
     const decoded = verifyToken(token); // type depends on verifyToken return type
 
     req.user = decoded;
 
+    next();
+  }
+);
+
+export const guestOrAuth = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    let token: string | undefined = req.headers.authorization?.startsWith('Bearer ')
+      ? req.headers.authorization.split('Bearer ')[1]
+      : undefined;
+
+    // fallback to cookie
+    if (!token) {
+      token = req.cookies?.accessToken;
+    }
+
+    if (token) {
+      const decoded = verifyToken(token);
+      req.user = decoded;
+      return next();
+    }
+
+    const guestId = getGuestIdFromRequest(req);
+    if (!guestId) {
+      throw createUnauthorizedError('no token or guestId provided');
+    }
+
+    req.user = { userId: guestId, role: 'guest' };
     next();
   }
 );
@@ -65,7 +104,7 @@ export const authorization = (...roles: string[]) => {
       throw createForbiddenError('user info in not found');
     }
 
-    if (!roles.includes(req.user.role)) {
+    if (!req.user?.role || !roles.includes(req.user.role)) {
       throw createForbiddenError(` only ${roles.join(', ')}  can access this api  `);
     }
 

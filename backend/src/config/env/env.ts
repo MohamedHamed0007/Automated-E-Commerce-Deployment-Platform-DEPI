@@ -30,7 +30,7 @@ if (result.error) {
 
 export const env = {
   NODE_ENV: process.env.NODE_ENV || "development",
-  PORT: process.env.PORT || 5000,
+  PORT: process.env.PORT || 3000,
   MONGO_URI: process.env.MONGO_URI as string,
   JWT_SECRET: process.env.JWT_SECRET as string,
   EMAIL_HOST: process.env.EMAIL_HOST as string,
@@ -44,7 +44,7 @@ export const env = {
   JWT_RESET_PASSWORD_EXPIRE: process.env.JWT_RESET_PASSWORD_EXPIRE as string,
   FRONTEND_URL: process.env.FRONTEND_URL as string,
   ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS as string,
-  API_PREFIX: process.env.API_PREFIX as string,
+  API_PREFIX: (process.env.API_PREFIX || "/api/v1") as string,
   SHIPPO_API_KEY: process.env.SHIPPO_API_KEY as string,
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY as string,
   STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET as string,

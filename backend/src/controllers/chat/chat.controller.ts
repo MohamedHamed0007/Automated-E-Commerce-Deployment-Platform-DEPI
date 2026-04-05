@@ -1,16 +1,17 @@
-import { Request,Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import * as chatService from '../../Services/chat/chat.service';
+import { SenderType } from '../../config/DB/Models/Message/Message.model';
 import { ApiResponse } from '../../utils/Reponse/api.response.utils';
 import { asyncHandler } from '../../utils/AsyncHandler/asyncHandler.utils';
-
-
+import { getIO } from '../../config/Socket/socketio.instance'; // ✅ import io
+import { CHAT_EVENTS } from '../../sockets/Chat/chat.socket';
 // ── POST /chatApi — create or reopen a chat ──────────────────────────────
 export const createChat = asyncHandler(
   async (req: Request, res: Response, _next: NextFunction) => {
-    const { adminId, shipmentRef } = req.body;
-     const userId = req.user!.userId;
+    const { shipmentRef } = req.body;
+    const userId = req.user!.userId;
 
-    const chat = await chatService.createChat({ userId, adminId, shipmentRef });
+    const chat = await chatService.createChat({ userId, shipmentRef });
 
     return ApiResponse.success(res, 'Chat opened', chat, 201);
   }
@@ -45,8 +46,8 @@ export const getAllChats = asyncHandler(
 export const getChatById = asyncHandler(
   async (req: Request, res: Response, _next: NextFunction) => {
     const { chatId } = req.params;
-    const requesterId = req.user!._id;
-    const requesterRole = req.user!.role as 'admin' | 'customer' | 'driver';
+    const requesterId = req.user!.userId;
+    const requesterRole = req.user!.role as 'admin' | 'customer' | 'driver' | 'user' | 'guest';
 
     const chat = await chatService.getChatById(chatId, requesterId, requesterRole);
 
@@ -58,8 +59,34 @@ export const getChatById = asyncHandler(
 export const getChatMessages = asyncHandler(
   async (req: Request, res: Response, _next: NextFunction) => {
     const { chatId } = req.params;
-    const requesterId = req.user!._id;
-    const requesterRole = req.user!.role;
+    const requesterId = req.user!.userId;
+    const requesterRole = req.user!.role as 'admin' | 'user' | 'customer' | 'driver' | 'guest';
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 50;
+
+    const messages = await chatService.getChatMessages({
+      chatId,
+      requesterId,
+      requesterRole,
+      page,
+      limit,
+    });
+
+    return ApiResponse.success(res, 'Messages fetched', messages);
+  }
+);
+
+// ── GET /chatApi/messages?chatId=... — (query variant for clients) ─────────
+export const getChatMessagesByQuery = asyncHandler(
+  async (req: Request, res: Response, _next: NextFunction) => {
+    const { chatId } = req.query;
+
+    if (!chatId || typeof chatId !== 'string') {
+      return ApiResponse.success(res, 'chatId query param is required', [], 400);
+    }
+
+    const requesterId = req.user!.userId;
+    const requesterRole = req.user!.role as 'admin' | 'user' | 'customer' | 'driver' | 'guest';
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 50;
 
@@ -78,16 +105,59 @@ export const getChatMessages = asyncHandler(
 // ── POST /chatApi/messages — send a message (REST fallback) ──────────────
 export const sendMessage = asyncHandler(
   async (req: Request, res: Response, _next: NextFunction) => {
-    const { chatId, content } = req.body;
-    const senderId = req.user!._id;
-    const senderType = req.user!.role;
+    const { chatId, content, message: messageBody } = req.body;
+    const senderId = req.user!.userId;
+    const senderType = (req.user!.role === 'user' ? 'user' : req.user!.role) as SenderType;
+
+    const text = typeof content === 'string' ? content : typeof messageBody === 'string' ? messageBody : undefined;
+    if (!text || text.trim().length === 0) {
+      return ApiResponse.success(res, 'Message content is required', null, 400);
+    }
+
+    const { receiverId } = req.body;
 
     const message = await chatService.sendMessage({
       chatId,
       senderId,
+      receiverId: typeof receiverId === 'string' ? receiverId : undefined,
       senderType,
-      content,
+      content: text,
     });
+
+    console.log('[chat] REST message saved', {
+      chatId,
+      messageId: message._id.toString(),
+      senderId,
+      senderType,
+    });
+
+    try {
+      const io = getIO();
+      const socketPayload = {
+        _id: message._id.toString(),
+        text: message.content,
+        senderId: message.sender.toString(),
+        senderRole: message.senderType === 'admin' ? 'admin' : 'user',
+        chatId: String(chatId),
+        createdAt: message.createdAt.toISOString(),
+      };
+
+      const chatDoc = await chatService.getChatById(chatId, String(message.sender), 'admin');
+      const targetUser = chatDoc.participants.find((p: any) => p._id.toString() !== message.sender.toString());
+
+      console.log("Sender Role:", socketPayload.senderRole);
+      console.log("Emitting to:", socketPayload.senderRole === 'admin' ? `user_${targetUser?._id?.toString() || ''}` : "admin_room");
+
+      if (message.senderType === 'user' || message.senderType === 'customer') {
+        io.to('admin_room').emit(CHAT_EVENTS.RECEIVE_MESSAGE, socketPayload);
+      } else {
+        if (targetUser) {
+          io.to(`user_${targetUser._id.toString()}`).emit(CHAT_EVENTS.RECEIVE_MESSAGE, socketPayload);
+        }
+      }
+    } catch (err) {
+      console.error('chat rest fallback emit error:', err);
+    }
 
     return ApiResponse.success(res, 'Message sent', message, 201);
   }
@@ -97,7 +167,7 @@ export const sendMessage = asyncHandler(
 export const markAsRead = asyncHandler(
   async (req: Request, res: Response, _next: NextFunction) => {
     const { chatId } = req.params;
-    const readerId = req.user!._id;
+    const readerId = req.user!.userId;
     await chatService.markMessagesAsRead(chatId, readerId);
     return ApiResponse.success(res, 'Messages marked as read', null);
   }
@@ -107,7 +177,7 @@ export const markAsRead = asyncHandler(
 export const closeChat = asyncHandler(
   async (req: Request, res: Response, _next: NextFunction) => {
     const { chatId } = req.params;
-    const adminId = req.user!._id;
+    const adminId = req.user!.userId;
 
     const chat = await chatService.closeChat(chatId, adminId);
 
@@ -115,3 +185,10 @@ export const closeChat = asyncHandler(
   }
 );
 
+// ── GET /chatApi/admin-id ────────────────────────────────
+export const getAdminId = asyncHandler(
+  async (req: Request, res: Response, _next: NextFunction) => {
+    const admin = await chatService.getFirstAdmin();
+    return ApiResponse.success(res, 'Admin fetched', admin);
+  }
+);

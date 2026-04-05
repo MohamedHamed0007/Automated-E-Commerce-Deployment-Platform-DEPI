@@ -12,6 +12,7 @@ type ApiEnvelope<T> = {
   message?: string;
 };
 
+
 export type CreateChatPayload = {
   userId?: string;
   participantName?: string;
@@ -20,7 +21,7 @@ export type CreateChatPayload = {
   email?: string;
 };
 
-// --- Helper Functions ---
+
 function isRecord(value: unknown): value is UnknownRecord {
   return value !== null && typeof value === "object";
 }
@@ -135,13 +136,18 @@ function normalizeChatSummary(rawChat: unknown): ChatSummary {
 
 function normalizeMessage(rawMessage: unknown): ChatMessage {
   const message = isRecord(rawMessage) ? rawMessage : {};
+  const senderType = asString(message.senderType).toLowerCase();
+  const senderFromType =
+    senderType === "admin" ? "admin" : senderType === "user" ? "user" : null;
+
   const senderValue = asString(message.sender).toLowerCase();
   const sender: ChatMessage["sender"] =
-    senderValue === "admin" || senderValue === "user" || senderValue === "bot" || senderValue === "system"
+    senderFromType ??
+    (senderValue === "admin" || senderValue === "user" || senderValue === "bot" || senderValue === "system"
       ? (senderValue as ChatMessage["sender"])
       : asBoolean(message.isAdmin)
         ? "admin"
-        : "user";
+        : "user");
 
   const chatId =
     asString(message.chatId) ||
@@ -151,7 +157,7 @@ function normalizeMessage(rawMessage: unknown): ChatMessage {
     _id: getMessageId(message),
     chatId,
     sender,
-    text: asString(message.message) || asString(message.text),
+    text: asString(message.message) || asString(message.text) || asString(message.content),
     createdAt: asOptionalString(message.createdAt) || asOptionalString(message.timestamp),
     pending: asBoolean(message.pending),
   };
@@ -191,17 +197,15 @@ function extractMessages(payload: unknown, page: number, limit: number): ChatMes
 
 // --- API Implementation ---
 
-// المسار الأساسي اللي السيرفر مستنيه
+
 const CHAT_API_BASE = "/chatApi"; 
 
 export async function getChats() {
-  // هيجرب يجيب كل المحادثات من /chatApi/all
   const response = await axiosInstance.get(`${CHAT_API_BASE}/all`);
   return extractChats(response.data);
 }
 
 export async function getChatMessages(chatId: string, page = 1, limit = 20) {
-  // هيضرب في المسار اللي إنت بعته بالظبط: /chatApi/:id/messages
   const response = await axiosInstance.get(`${CHAT_API_BASE}/${chatId}/messages`, {
     params: { page, limit },
   });
@@ -209,10 +213,9 @@ export async function getChatMessages(chatId: string, page = 1, limit = 20) {
 }
 
 export async function sendChatMessage(chatId: string, message: string) {
-  // بيبعت رسالة جديدة للمحادثة
   const response = await axiosInstance.post(`${CHAT_API_BASE}/messages`, {
     chatId,
-    message,
+    content: message,
   });
   const payload = unwrapPayload(response.data);
   return isRecord(payload) ? normalizeMessage(payload) : null;
@@ -232,4 +235,6 @@ export async function createChat(payload: CreateChatPayload) {
   const response = await axiosInstance.post(CHAT_API_BASE, payload);
   const createdChat = unwrapPayload(response.data);
   return normalizeChatSummary(createdChat);
+
 }
+

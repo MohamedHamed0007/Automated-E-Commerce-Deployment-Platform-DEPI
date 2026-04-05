@@ -33,16 +33,18 @@ export function ChatWindow({
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages]);
-
-  if (!chat) {
-    return (
-      <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white text-sm text-gray-400 dark:border-gray-800 dark:bg-gray-950">
-        Select a chat from the sidebar to view messages.
-      </div>
-    );
-  }
+  
+  // if (!chat) {
+  //   return ( <>
+  //    <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white text-sm text-gray-400 dark:border-gray-800 dark:bg-gray-950">
+  //       Select a chat from the sidebar to view messages.
+  //     </div>
+  //   </>
+  //   );
+  // }
 
   return (
+    <>
     <section className="flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950">
       <div className="flex items-center justify-between gap-4 border-b border-gray-200 px-5 py-4 dark:border-gray-800">
         <div>
@@ -98,5 +100,6 @@ export function ChatWindow({
 
       <ChatInput disabled={chat.isClosed} sending={sending} onSend={onSend} />
     </section>
+    </>
   );
 }

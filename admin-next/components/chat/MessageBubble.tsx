@@ -1,50 +1,46 @@
-"use client";
+import React from "react";
+import { ChatMessage } from "@/types/Chat";
 
-import type { ChatMessage } from "@/types/Chat";
-
-type MessageBubbleProps = {
+interface MessageBubbleProps {
   message: ChatMessage;
-};
+  isOwn: boolean;
+}
 
-export function MessageBubble({ message }: MessageBubbleProps) {
-  const isAdmin = message.sender === "admin";
+const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isOwn }) => {
+  const formatTime = (timestamp?: string | null) => {
+    if (!timestamp) return "";
+    try {
+      return new Date(timestamp).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "";
+    }
+  };
 
   return (
-    <div className={`flex ${isAdmin ? "justify-end" : "justify-start"}`}>
+    <div className={`flex ${isOwn ? "justify-end" : "justify-start"} mb-4`}>
       <div
-        className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm ${
-          isAdmin
-            ? "rounded-br-md bg-blue-600 text-white"
-            : "rounded-bl-md border border-gray-200 bg-white text-gray-800 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100"
+        className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+          isOwn
+            ? "bg-blue-500 text-white rounded-br-none"
+            : "bg-gray-200 text-gray-900 rounded-bl-none"
         }`}
       >
-        <p className="whitespace-pre-wrap text-sm leading-6">{message.text}</p>
-        <div
-          className={`mt-2 text-[11px] ${
-            isAdmin ? "text-blue-100" : "text-gray-400 dark:text-gray-500"
-          }`}
-        >
-          <span>{formatMessageDate(message.createdAt)}</span>
-          {message.pending ? <span className="ml-2">Sending...</span> : null}
+        <p className="text-sm whitespace-pre-wrap break-words">{message.text}</p>
+        <div className={`flex items-center justify-between mt-1 text-xs ${
+          isOwn ? "text-blue-100" : "text-gray-500"
+        }`}>
+          <span>{isOwn ? "You" : "Customer"}</span>
+          <span>{formatTime(message.createdAt)}</span>
         </div>
+        {message.pending && (
+          <div className="text-xs text-blue-200 mt-1">Sending...</div>
+        )}
       </div>
     </div>
   );
-}
+};
 
-function formatMessageDate(value?: string | null) {
-  if (!value) {
-    return "Now";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("en", {
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date);
-}
+export default MessageBubble;

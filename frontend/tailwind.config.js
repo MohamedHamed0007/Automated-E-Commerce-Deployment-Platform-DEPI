@@ -1,6 +1,5 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  // تأكد أن هذه الكلمة 'class' وليست 'media'
   darkMode: 'class', 
   content: [
     "./index.html",

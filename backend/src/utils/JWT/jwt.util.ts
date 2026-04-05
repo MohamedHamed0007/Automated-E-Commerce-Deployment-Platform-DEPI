@@ -9,10 +9,10 @@ if (!env.JWT_SECRET && !env.JWT?.SECRET) {
 const JWT_SECRET = env.JWT?.SECRET || env.JWT_SECRET;
 
 // Define what type your token payload will contain
-export interface TokenPayload extends JwtPayload {
-  id: string;
+export interface TokenPayload extends Omit<JwtPayload, 'role'> {
+  userId: string;
   email?: string;
-  role?: string;
+  role?: 'user' | 'admin' | 'customer' | 'driver';
 }
 
 // Generate Access Token

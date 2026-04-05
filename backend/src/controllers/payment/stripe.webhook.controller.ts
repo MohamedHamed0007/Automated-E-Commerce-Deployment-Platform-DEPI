@@ -40,24 +40,20 @@ export const stripeWebhookController = async (req: Request, res: Response) => {
           break;
         }
 
-        // 🟢 1. تحديث الدفع
         await markPaymentSucceeded(paymentId);
 
-        // 🟢 2. جلب payment
         const payment = await Payment.findById(paymentId);
         if (!payment) {
           console.warn("Payment not found:", paymentId);
           break;
         }
 
-        // 🟢 3. جلب shipment
         const shipment = await Shipment.findById(payment.shipmentId);
         if (!shipment) {
           console.warn("Shipment not found:", payment.shipmentId);
           break;
         }
 
-        // 🟢 4. تحقق من البيانات
         if (!shipment.selectedRate?.shippoRateId) {
           console.warn("No shippoRateId in selectedRate");
           break;

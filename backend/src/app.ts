@@ -34,6 +34,8 @@ const bootstrap = async (app: express.Application): Promise<void> => {
 
   await connectDB();
 
+ 
+
   await routerHandler(app);
 
   app.use(errorHandler);

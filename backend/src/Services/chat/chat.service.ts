@@ -23,15 +23,21 @@ const isParticipant = (chat: IChat, userId: string): boolean =>
  * - Prevents duplicate active chats between same participants
  */
 export const createChat = async (input: CreateChatInput): Promise<IChat> => {
-  const { userId, adminId, shipmentRef } = input;
+  let { userId, adminId, shipmentRef } = input;
 
-  // Validate ObjectIds
   if (!Types.ObjectId.isValid(userId)) {
     throw new Error("Invalid userId");
   }
+
+  if (!adminId) {
+    const admin = await getFirstAdmin();
+    adminId = admin._id.toString();
+  }
+
   if (!Types.ObjectId.isValid(adminId)) {
     throw new Error("Invalid adminId");
   }
+
   if (shipmentRef && !Types.ObjectId.isValid(shipmentRef)) {
     throw new Error("Invalid shipmentRef");
   }
@@ -96,11 +102,9 @@ export const getAllChats = async (page = 1, limit = 20): Promise<IChat[]> => {
 export const getChatById = async (
   chatId: string,
   requesterId: string,
-  requesterRole: "admin" | "customer" | "driver",
+  requesterRole: "admin" | "customer" | "driver" | "user" | "guest",
 ): Promise<IChat> => {
-  const chat = await Chat.findById(chatId)
-    .populate("participants", "name email role")
-    .populate("shipmentRef", "trackingNumber status");
+  const chat = await Chat.findById(chatId);
 
   if (!chat) {
     const err = new Error("Chat not found");
@@ -108,12 +112,15 @@ export const getChatById = async (
     throw err;
   }
 
-  // Authorization check
+  // Authorization check (done before populate to ensure guest IDs are not lost)
   if (requesterRole !== "admin" && !isParticipant(chat, requesterId)) {
     const err = new Error("Forbidden: you are not a participant of this chat");
     (err as NodeJS.ErrnoException).code = "403";
     throw err;
   }
+
+  await chat.populate("participants", "name email role");
+  await chat.populate("shipmentRef", "trackingNumber status");
 
   return chat;
 };
@@ -144,7 +151,8 @@ export const getChatMessages = async (
 export const sendMessage = async (
   input: SendMessageInput,
 ): Promise<IMessage> => {
-  const { chatId, senderId, senderType, content } = input;
+  const { chatId, senderId, senderType, receiverId, content } = input;
+  const effectiveSenderId = senderId;
 
   const chat = await Chat.findById(chatId);
 
@@ -161,8 +169,14 @@ export const sendMessage = async (
     throw err;
   }
 
-  // Authorization check
-  if (senderType !== "admin" && !isParticipant(chat, senderId)) {
+  if (!Types.ObjectId.isValid(effectiveSenderId)) {
+    const err = new Error("Invalid senderId");
+    (err as NodeJS.ErrnoException).code = "400";
+    throw err;
+  }
+
+  // Authorization check: sender must be part of this chat
+  if (!isParticipant(chat, effectiveSenderId)) {
     const err = new Error("Forbidden: you are not a participant of this chat");
     (err as NodeJS.ErrnoException).code = "403";
     throw err;
@@ -171,7 +185,8 @@ export const sendMessage = async (
   // Create message
   const message = await Message.create({
     chat: new Types.ObjectId(chatId),
-    sender: new Types.ObjectId(senderId),
+    sender: new Types.ObjectId(effectiveSenderId),
+    receiver: receiverId && Types.ObjectId.isValid(receiverId) ? new Types.ObjectId(receiverId) : undefined,
     senderType,
     content: content.trim(),
     read: false,
@@ -216,4 +231,12 @@ export const markMessagesAsRead = async (
     { chat: chatId, sender: { $ne: readerId }, read: false },
     { $set: { read: true } },
   );
+};
+
+import User from '../../config/DB/Models/User/user.models';
+
+export const getFirstAdmin = async () => {
+  const admin = await User.findOne({ role: 'admin' }).select('_id');
+  if (!admin) throw new Error('No admin found');
+  return admin;
 };

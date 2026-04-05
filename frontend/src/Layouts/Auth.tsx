@@ -1,6 +1,7 @@
 import { Sidebar } from "@/components/Sidebar";
 import { Outlet } from "react-router-dom";
-import ChatWidget from "@/components/ChatWidget/ChatWidget"; 
+import ChatWidget from "@/components/ChatWidget/ChatWidget";
+import NotificationBell from "../../NotificationBell/NotificationBell";
 
 const Auth = () => {
   return (
@@ -17,6 +18,12 @@ const Auth = () => {
 
       {/* Main content */}
       <main className="flex-1 pt-14 md:pt-0 p-5 overflow-auto bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
+
+    
+        <div className="flex justify-end mb-4">
+          <NotificationBell />
+        </div>
+
         <Outlet />
       </main>
 

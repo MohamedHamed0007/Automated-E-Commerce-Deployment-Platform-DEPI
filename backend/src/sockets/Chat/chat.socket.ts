@@ -1,211 +1,287 @@
 import { Server, Socket } from 'socket.io';
 import { Types } from 'mongoose';
 import { Chat } from '../../config/DB/Models/Chat/Chat.model';
-import { Message } from '../../config/DB/Models/Message/Message.model';
+import { Message, SenderType } from '../../config/DB/Models/Message/Message.model';
+import * as chatService from '../../Services/chat/chat.service';
 
 export const CHAT_EVENTS = {
-  // Client → Server
-  JOIN_CHAT: 'chat:join',
-  LEAVE_CHAT: 'chat:leave',
-  SEND_MESSAGE: 'chat:sendMessage',
-  MARK_READ: 'chat:markRead',
-  TYPING: 'chat:typing',
-
-  // Server → Client
-  NEW_MESSAGE: 'chat:newMessage',
-  MESSAGES_READ: 'chat:messagesRead',
-  TYPING_INDICATOR: 'chat:typingIndicator',
-  ADMIN_JOINED: 'chat:adminJoined',
+  JOIN: 'chat:join',
+  LEAVE: 'chat:leave',
+  SEND_MESSAGE: 'chat:message',
+  RECEIVE_MESSAGE: 'chat:message',
   ERROR: 'chat:error',
   JOINED: 'chat:joined',
+  MARK_READ: 'chat:mark_read',
+  MESSAGES_READ: 'chat:messages_read',
+  TYPING: 'chat:typing',
+  TYPING_INDICATOR: 'chat:typing_indicator',
+  MESSAGE_STATUS: 'chat:message_status',
 } as const;
 
 interface AuthUser {
   _id: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'customer' | 'driver' | 'guest';
   email: string;
 }
 
-interface SendMessagePayload {
+interface PrivateMessagePayload {
   chatId: string;
   content: string;
+  receiverId?: string;
+  clientMessageId?: string;
 }
 
 interface JoinChatPayload {
   chatId: string;
 }
 
-const canAccessChat = async (
-  chatId: string,
-  user: AuthUser
-): Promise<boolean> => {
-  if (user.role === 'admin') return true; // admins see all chats
+const isAdminRole = (role: string) => role === 'admin';
+const normalizeSenderType = (role: string): SenderType =>
+  role === 'admin' ? 'admin' : 'user';
 
+const canAccessChat = async (chatId: string, user: AuthUser): Promise<boolean> => {
   const chat = await Chat.findById(chatId).lean();
   if (!chat) return false;
+
+  // ✅ admin يدخل أي شات
+  if (user.role === 'admin') return true;
 
   return chat.participants.some((p) => p.toString() === user._id);
 };
 
-/*  Main registration function — called once from Socket.server.ts  */
+const USER_ROOM = (userId: string) => `user_${userId}`;
+const ADMIN_ROOM = 'admin_room';
+const ADMIN_ROOM_BY_ID = (adminId: string) => `admin:${adminId}`;
+const CHAT_ROOM = (chatId: string) => String(chatId);
+
+export const toSocketMessage = (message: {
+  _id: { toString(): string };
+  chat: { toString(): string };
+  sender: { toString(): string };
+  receiver?: { toString(): string } | null;
+  senderType: SenderType;
+  content: string;
+  read: boolean;
+  createdAt: Date;
+}) => ({
+  _id: message._id.toString(),
+  chatId: message.chat.toString(),
+  senderId: message.sender.toString(),
+  receiverId: message.receiver?.toString() ?? null,
+  senderType: message.senderType === 'customer' ? 'user' : message.senderType,
+  content: message.content,
+  read: message.read,
+  createdAt: message.createdAt.toISOString(),
+});
 
 export const registerChatSocket = (io: Server): void => {
   io.on('connection', async (socket: Socket) => {
     const user = socket.data.user as AuthUser;
-    console.log(`Socket connected: ${user.email} [${user.role}]`);
+    console.log("Client connected:", socket.id);
+    socket.join(USER_ROOM(user._id));
 
-    // ── ADMIN: join ALL active chat rooms immediately ────────────────────
-    if (user.role === 'admin') {
-      const chats = await Chat.find({}).select('_id');
-      const roomIds = chats.map((c) => c._id.toString());
-      roomIds.forEach((id) => socket.join(id));
-
-      socket.emit(CHAT_EVENTS.ADMIN_JOINED, {
-        message: `Joined ${roomIds.length} active chat rooms`,
-        rooms: roomIds,
-      });
+    if (isAdminRole(user.role)) {
+      socket.join(ADMIN_ROOM);
+      socket.join(ADMIN_ROOM_BY_ID(user._id));
     }
 
-    // ── EVENT: join a chat room ──────────────────────────────────────────
-    socket.on(
-      CHAT_EVENTS.JOIN_CHAT,
-      async ({ chatId }: JoinChatPayload) => {
-        try {
-          if (!Types.ObjectId.isValid(chatId)) {
-            return socket.emit(CHAT_EVENTS.ERROR, { message: 'Invalid chatId' });
-          }
-
-          const allowed = await canAccessChat(chatId, user);
-          if (!allowed) {
-            return socket.emit(CHAT_EVENTS.ERROR, {
-              message: 'FORBIDDEN: you are not a participant of this chat',
-            });
-          }
-
-          await socket.join(chatId);
-
-          // Return the last 50 messages on join
-          const history = await Message.find({ chat: chatId })
-            .sort({ createdAt: 1 })
-            .limit(50)
-            .lean();
-
-          socket.emit(CHAT_EVENTS.JOINED, { chatId, history });
-        } catch {
-          socket.emit(CHAT_EVENTS.ERROR, { message: 'Could not join chat' });
+    // ================= INITIAL CHAT ROOM JOIN =================
+    // If client passes chatId in handshake, join it immediately.
+    // This improves reliability during refresh / reconnect.
+    const initialChatId = (socket.handshake.auth as any)?.chatId as string | undefined;
+    if (initialChatId && Types.ObjectId.isValid(initialChatId)) {
+      try {
+        const allowed = await canAccessChat(initialChatId, user);
+        if (allowed) {
+          socket.join(CHAT_ROOM(initialChatId));
+          console.log('[chat] joined room on connect', { socketId: socket.id, room: CHAT_ROOM(initialChatId) });
         }
+      } catch {
+        // ignore room join failures; client will re-join explicitly via JOIN event
       }
-    );
+    }
 
-    // ── LEAVE a chat room ────────────────────────────────────────────────
-    socket.on(CHAT_EVENTS.LEAVE_CHAT, ({ chatId }: JoinChatPayload) => {
-      socket.leave(chatId);
-    });
+    // ================= JOIN CHAT =================
+    socket.on(CHAT_EVENTS.JOIN, async ({ chatId }: JoinChatPayload) => {
+      try {
+        if (!Types.ObjectId.isValid(chatId)) {
+          return socket.emit(CHAT_EVENTS.ERROR, { message: 'Invalid chatId' });
+        }
 
-    // ── SEND a message ───────────────────────────────────────────────────
-    socket.on(
-      CHAT_EVENTS.SEND_MESSAGE,
-      async ({ chatId, content }: SendMessagePayload) => {
-        try {
-          if (!Types.ObjectId.isValid(chatId)) {
-            return socket.emit(CHAT_EVENTS.ERROR, { message: 'Invalid chatId' });
-          }
+        let requestedChatId = chatId;
+        let chat = (await Chat.findById(requestedChatId)) as any;
+        if (!chat && user.role === 'guest') {
+          const recoveredChat = await chatService.createChat({ userId: user._id });
+          chat = (await Chat.findById(recoveredChat._id.toString())) as any;
+          requestedChatId = recoveredChat._id.toString();
+          console.log('[chat] created guest recovery chat', { socketId: socket.id, newChatId: requestedChatId });
+        }
 
-          if (!content || content.trim().length === 0) {
-            return socket.emit(CHAT_EVENTS.ERROR, {
-              message: 'Message content cannot be empty',
-            });
-          }
+        if (!chat) {
+          return socket.emit(CHAT_EVENTS.ERROR, { message: 'Chat not found' });
+        }
 
-          if (content.length > 2000) {
-            return socket.emit(CHAT_EVENTS.ERROR, {
-              message: 'Message too long (max 2000 chars)',
-            });
-          }
+        let allowed = await canAccessChat(requestedChatId, user);
+        if (!allowed && user.role === 'guest') {
+          const oldChatId = requestedChatId;
+          const recoveredChat = await chatService.createChat({ userId: user._id });
+          chat = await Chat.findById(recoveredChat._id.toString());
+          requestedChatId = recoveredChat._id.toString();
+          allowed = true;
+          console.log('[chat] recovered guest chat', { socketId: socket.id, oldChatId, newChatId: requestedChatId });
+        }
 
-          const allowed = await canAccessChat(chatId, user);
-          if (!allowed) {
-            return socket.emit(CHAT_EVENTS.ERROR, {
-              message: 'FORBIDDEN: you are not a participant of this chat',
-            });
-          }
+        if (!allowed) {
+          return socket.emit(CHAT_EVENTS.ERROR, { message: 'Forbidden: you are not a participant of this chat' });
+        }
 
-          // Persist message
-          const message = await Message.create({
-            chat: chatId,
-            sender: user._id,
-            senderType: user.role, // 'user' | 'admin'
-            content: content.trim(),
-            read: false,
-          });
+        const room = CHAT_ROOM(requestedChatId);
+        await socket.join(room);
+        console.log('[chat] joined room', { socketId: socket.id, userId: user._id, room });
 
-          // Update chat updatedAt so lists can be sorted by recent activity
-          await Chat.findByIdAndUpdate(chatId, { updatedAt: new Date() });
+        const history = await Message.find({ chat: requestedChatId })
+          .sort({ createdAt: 1 })
+          .limit(50)
+          .lean();
 
-          // Broadcast to everyone in the room (sender included)
-          io.to(chatId).emit(CHAT_EVENTS.NEW_MESSAGE, {
+        const sanitizedHistory = history.map((message) =>
+          toSocketMessage({
             _id: message._id,
-            chat: chatId,
-            sender: user._id,
+            chat: message.chat,
+            sender: message.sender,
+            receiver: message.receiver,
             senderType: message.senderType,
             content: message.content,
             read: message.read,
             createdAt: message.createdAt,
-          });
+          })
+        );
 
-          // If this is a new chat room, make sure all connected admin sockets join it
-          const adminSockets = await io.fetchSockets();
-          for (const s of adminSockets) {
-            if (s.data.user?.role === 'admin' && !s.rooms.has(chatId)) {
-              s.join(chatId);
-            }
-          }
-        } catch {
-          socket.emit(CHAT_EVENTS.ERROR, { message: 'Could not send message' });
+        const otherParticipantId = ((chat?.participants ?? []) as { toString(): string }[])
+          .map((participant) => participant.toString())
+          .find((participantId) => participantId !== user._id) ?? null;
+
+        socket.emit(CHAT_EVENTS.JOINED, {
+          chatId: requestedChatId,
+          history: sanitizedHistory,
+          chatMeta: { otherParticipantId },
+        });
+
+      } catch (err) {
+        socket.emit(CHAT_EVENTS.ERROR, { message: 'Could not join chat' });
+      }
+    });
+
+    // ================= LEAVE CHAT =================
+    socket.on(CHAT_EVENTS.LEAVE, ({ chatId }: JoinChatPayload) => {
+      socket.leave(CHAT_ROOM(chatId));
+    });
+
+    // ================= SEND MESSAGE =================
+    socket.on(CHAT_EVENTS.SEND_MESSAGE, async ({ chatId, content, receiverId, clientMessageId }: PrivateMessagePayload, callback?: Function) => {
+      try {
+        const senderType = normalizeSenderType(user.role);
+        const finalSenderId = user._id;
+
+        console.log('[chat] incoming send_message', {
+          senderId: finalSenderId,
+          authUserId: user._id,
+          role: user.role,
+          chatId,
+          receiverId,
+          clientMessageId,
+          content,
+        });
+
+        if (!Types.ObjectId.isValid(chatId)) {
+          return socket.emit(CHAT_EVENTS.ERROR, { message: 'Invalid chatId' });
+        }
+
+        if (!content || content.trim().length === 0) {
+          return socket.emit(CHAT_EVENTS.ERROR, { message: 'Message cannot be empty' });
+        }
+
+        const allowed = await canAccessChat(chatId, user);
+        if (!allowed) {
+          return socket.emit(CHAT_EVENTS.ERROR, { message: 'Forbidden: you are not a participant of this chat' });
+        }
+
+        const message = await chatService.sendMessage({
+          chatId,
+          senderId: finalSenderId,
+          senderType,
+          content: content.trim(),
+          receiverId:
+            receiverId && Types.ObjectId.isValid(receiverId) ? receiverId : undefined,
+        });
+
+        console.log('[chat] socket message saved', {
+          chatId,
+          messageId: message._id.toString(),
+          senderId: finalSenderId,
+          senderType,
+        });
+
+        const socketPayload = {
+          _id: message._id.toString(),
+          text: message.content,
+          senderId: message.sender.toString(),
+          senderRole: message.senderType === 'admin' ? 'admin' : 'user',
+          chatId: message.chat.toString(),
+          createdAt: message.createdAt.toISOString(),
+          clientMessageId
+        };
+
+        const chatDoc = await Chat.findById(chatId).lean();
+        const targetUser = chatDoc?.participants.find(p => p.toString() !== finalSenderId.toString());
+
+        console.log("Sender Role:", socketPayload.senderRole);
+        console.log("Emitting to:", senderType === 'admin' ? `user_${targetUser}` : "admin_room");
+
+        if (typeof callback === 'function') {
+          callback({ success: true, message: socketPayload });
+        }
+      } catch (err) {
+        console.error('chat send_message error:', err);
+        socket.emit(CHAT_EVENTS.ERROR, { message: 'Could not send message' });
+        if (typeof callback === 'function') {
+          callback({ success: false, error: err instanceof Error ? err.message : String(err) });
         }
       }
-    );
+    });
 
-    // ── MARK messages as read ────────────────────────────────────────────
-    socket.on(
-      CHAT_EVENTS.MARK_READ,
-      async ({ chatId }: JoinChatPayload) => {
-        try {
-          if (!Types.ObjectId.isValid(chatId)) return;
+    // ================= MARK READ =================
+    socket.on(CHAT_EVENTS.MARK_READ, async ({ chatId }: JoinChatPayload) => {
+      try {
+        const allowed = await canAccessChat(chatId, user);
+        if (!allowed) return;
 
-          const allowed = await canAccessChat(chatId, user);
-          if (!allowed) return;
+        await Message.updateMany(
+          { chat: chatId, sender: { $ne: user._id }, read: false },
+          { $set: { read: true } }
+        );
 
-          // Mark all messages NOT sent by this user as read
-          await Message.updateMany(
-            { chat: chatId, sender: { $ne: user._id }, read: false },
-            { $set: { read: true } }
-          );
+        socket.to(CHAT_ROOM(chatId)).emit(CHAT_EVENTS.MESSAGES_READ, {
+          chatId,
+          readBy: user._id,
+        });
 
-          // Notify the room so the other side can update read receipts
-          socket.to(chatId).emit(CHAT_EVENTS.MESSAGES_READ, {
-            chatId,
-            readBy: user._id,
-          });
-        } catch {
-          socket.emit(CHAT_EVENTS.ERROR, {
-            message: 'Could not mark messages as read',
-          });
-        }
+      } catch {
+        socket.emit(CHAT_EVENTS.ERROR, { message: 'Could not mark messages as read' });
       }
-    );
+    });
 
-    // ── TYPING indicator ─────────────────────────────────────────────────
-    socket.on(CHAT_EVENTS.TYPING, ({ chatId }: { chatId: string }) => {
-      // Broadcast to room EXCEPT the person typing
-      socket.to(chatId).emit(CHAT_EVENTS.TYPING_INDICATOR, {
+    // ================= TYPING =================
+    socket.on(CHAT_EVENTS.TYPING, ({ chatId, isTyping }: { chatId: string; isTyping: boolean }) => {
+      socket.to(CHAT_ROOM(chatId)).emit(CHAT_EVENTS.TYPING_INDICATOR, {
         chatId,
         userId: user._id,
-        senderType: user.role,
+        senderType: normalizeSenderType(user.role),
+        isTyping: Boolean(isTyping),
       });
     });
 
-    // ── DISCONNECT ───────────────────────────────────────────────────────
+    // ================= DISCONNECT =================
     socket.on('disconnect', (reason: string) => {
       console.log(`Socket disconnected [${user._id}] reason: ${reason}`);
     });

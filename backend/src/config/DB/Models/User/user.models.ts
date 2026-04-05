@@ -24,7 +24,7 @@ const UserSchema = new Schema<IUser>(
     passwordHash: { type: String, required: true },
     role: { type: String, enum: ["user", "admin", "customer", "driver"], default: "user" },
     isBlocked: { type: Boolean, default: false },
-    isVerified: { type: Boolean, default: false },
+    isVerified: { type: Boolean, default: true },
     phone: { type: String, default: null },
     
     address: {

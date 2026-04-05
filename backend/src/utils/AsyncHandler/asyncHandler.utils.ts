@@ -1,10 +1,11 @@
-import { Request, Response, NextFunction, RequestHandler } from "express";
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 
-export const asyncHandler = 
-  (fn: (req: Request, res: Response, next: NextFunction) => Promise<any>): RequestHandler => 
+export const asyncHandler = <Req extends Request = Request>(
+  fn: (req: Req, res: Response, next: NextFunction) => Promise<any>
+): RequestHandler =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await fn(req, res, next);
+      await fn(req as Req, res, next);
     } catch (err) {
       next(err);
     }

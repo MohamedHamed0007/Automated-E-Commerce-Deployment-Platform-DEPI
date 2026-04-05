@@ -1,5 +1,6 @@
 import { Socket } from 'socket.io';
 import jwt, { JwtPayload } from 'jsonwebtoken';
+import { Types } from 'mongoose';
 import { env } from '../../config/env/env';
 import User from '../../config/DB/Models/User/user.models';
 
@@ -13,68 +14,52 @@ export const socketAuthMiddleware = async (
   next: (err?: Error) => void
 ): Promise<void> => {
   try {
-    /**
-     * Extract token from:
-     * - handshake.auth.token (preferred)
-     * - Authorization header (fallback)
-     */
     const raw: string | undefined =
       socket.handshake.auth?.token ||
       socket.handshake.headers?.authorization;
 
-    // If no token provided → reject connection
-    if (!raw) {
-      return next(new Error('UNAUTHORIZED: No token provided'));
+    const guestId = typeof socket.handshake.auth?.guestId === 'string'
+      ? String(socket.handshake.auth.guestId).trim()
+      : undefined;
+
+    if (raw) {
+      const token = raw.startsWith('Bearer ') ? raw.slice(7) : raw;
+
+      const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload & {
+        userId: string;
+        role: string;
+      };
+
+      const user = await User.findById(decoded.userId).select(
+        '_id email role isBlocked isVerified'
+      );
+
+      if (!user) {
+        return next(new Error('UNAUTHORIZED: User not found'));
+      }
+
+      if (user.isBlocked) {
+        return next(new Error('FORBIDDEN: Your account has been blocked'));
+      }
+
+      socket.data.user = {
+        _id: String(user._id),
+        email: user.email,
+        role: user.role,
+      };
+      return next();
     }
 
-    /**
-     * Remove "Bearer " prefix if exists
-     */
-    const token = raw.startsWith('Bearer ') ? raw.slice(7) : raw;
-
-    /**
-     * Verify JWT token using secret key
-     * Expected payload includes: id, role
-     */
-    const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload & {
-      id: string;
-      role: string;
-    };
-
-    /**
-     * Fetch user from database
-     * Select only necessary fields for performance & security
-     */
-    const user = await User.findById(decoded.id).select(
-      '_id email role isBlocked isVerified'
-    );
-
-    // If user not found → reject
-    if (!user) {
-      return next(new Error('UNAUTHORIZED: User not found'));
+    if (!guestId || !Types.ObjectId.isValid(guestId)) {
+      return next(new Error('UNAUTHORIZED: No token or valid guestId provided'));
     }
 
-    // If user is blocked → reject
-    if (user.isBlocked) {
-      return next(new Error('FORBIDDEN: Your account has been blocked'));
-    }
-
-    // If user is not verified → reject
-    if (!user.isVerified) {
-      return next(new Error('FORBIDDEN: Please verify your email first'));
-    }
-
-    /**
-     * Attach user data to socket
-     * This will be accessible later via socket.data.user
-     */
     socket.data.user = {
-      _id: String(user._id),
-      email: user.email,
-      role: user.role,
+      _id: guestId,
+      email: 'guest@shippshere.local',
+      role: 'guest',
     };
 
-    // Allow connection
     next();
   } catch (err: unknown) {
     /**

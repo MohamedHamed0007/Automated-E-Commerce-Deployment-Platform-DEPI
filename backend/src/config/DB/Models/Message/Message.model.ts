@@ -1,10 +1,11 @@
 import mongoose, { Document, Schema, Types } from 'mongoose';
 
-export type SenderType = 'admin' | 'customer' | 'driver';
+export type SenderType = 'admin' | 'user' | 'customer' | 'driver';
 
 export interface IMessage extends Document {
   chat: Types.ObjectId;
   sender: Types.ObjectId;
+  receiver?: Types.ObjectId;
   senderType: SenderType;
   content: string;
   read: boolean;
@@ -25,9 +26,15 @@ const MessageSchema = new Schema<IMessage>(
       ref: 'User',
       required: true,
     },
+    receiver: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: false,
+      index: true,
+    },
     senderType: {
       type: String,
-      enum: ['admin', 'customer', 'driver'] as SenderType[],
+      enum: ['admin', 'user', 'customer', 'driver'] as SenderType[],
       required: true,
     },
     content: {

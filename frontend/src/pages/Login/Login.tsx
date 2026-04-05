@@ -38,9 +38,15 @@ const Login = () => {
     console.log('Login result:', resultAction);
 
     if (loginUser.fulfilled.match(resultAction)) {
-      toast.success('Logged in successfully!');
-      navigate('/user');
-    } else {
+  const payload = resultAction.payload as any;
+
+  localStorage.setItem("token", payload.accessToken);
+  localStorage.setItem("userId", payload.user._id);
+  localStorage.setItem("role", payload.user.role);
+
+  toast.success('Logged in successfully!');
+  navigate('/user');
+} else {
       // Display the error message returned from the backend/thunk
       toast.error( 'Login failed - Invalid email or password');
     }
