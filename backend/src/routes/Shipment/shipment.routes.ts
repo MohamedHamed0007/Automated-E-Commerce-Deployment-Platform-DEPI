@@ -12,6 +12,7 @@ import {
   compareRates,
   selectRate,
   getTracking,
+  buyLabel,
   deleteShipment,
   updateShipmentStatus
 } from '../../controllers/shipment/shipment.controller';
@@ -31,7 +32,8 @@ shipmentRouter.post(
   validateBody(selectRateSchema),
   selectRate
 );
-shipmentRouter.get('/:id/track', validateObjectId('id'), getTracking);
+shipmentRouter.get('/:id/track', getTracking);
+shipmentRouter.post('/:id/buy-label', validateObjectId('id'), buyLabel);
 
 shipmentRouter.delete('/:id', validateObjectId('id'), deleteShipment);
 

@@ -3,15 +3,15 @@
 import { ArchiveX, RefreshCcw } from "lucide-react";
 import { useEffect, useRef } from "react";
 
-import { ChatInput } from "./ChatInput";
-import { MessageBubble } from "./MessageBubble";
+import ChatInput from "./ChatInput";
+import MessageBubble from "./MessageBubble";
 import type { ChatMessage, ChatSummary } from "@/types/Chat";
 
 type ChatWindowProps = {
   chat: ChatSummary | null;
   messages: ChatMessage[];
   loading: boolean;
-  sending: boolean;
+  sending?: boolean;
   closing: boolean;
   onSend: (message: string) => void;
   onCloseChat: () => void;
@@ -49,10 +49,10 @@ export function ChatWindow({
       <div className="flex items-center justify-between gap-4 border-b border-gray-200 px-5 py-4 dark:border-gray-800">
         <div>
           <h2 className="text-base font-semibold text-gray-900 dark:text-white">
-            {chat.participantName}
+            {chat?.participantName ?? 'No chat selected'}
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            {chat.participantEmail || "Customer conversation"}
+            {chat?.participantEmail || "Customer conversation"}
           </p>
         </div>
 
@@ -68,11 +68,11 @@ export function ChatWindow({
           <button
             type="button"
             onClick={onCloseChat}
-            disabled={chat.isClosed || closing}
+            disabled={chat?.isClosed || closing}
             className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-3 py-2 text-sm text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-900/40 dark:text-red-400 dark:hover:bg-red-950/20"
           >
             <ArchiveX className="h-4 w-4" />
-            {chat.isClosed ? "Closed" : closing ? "Closing..." : "Close chat"}
+            {chat?.isClosed ? "Closed" : closing ? "Closing..." : "Close chat"}
           </button>
         </div>
       </div>
@@ -85,20 +85,20 @@ export function ChatWindow({
         ) : (
           <div className="space-y-3">
             {messages.map((message) => (
-              <MessageBubble key={message._id} message={message} />
+              <MessageBubble key={message._id} message={message} isOwn={false} />
             ))}
             <div ref={endRef} />
           </div>
         )}
       </div>
 
-      {chat.isClosed ? (
+      {chat?.isClosed ? (
         <div className="border-t border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
           This chat is closed. Sending new replies has been disabled.
         </div>
       ) : null}
 
-      <ChatInput disabled={chat.isClosed} sending={sending} onSend={onSend} />
+      <ChatInput disabled={chat?.isClosed} onSendMessage={onSend} />
     </section>
     </>
   );

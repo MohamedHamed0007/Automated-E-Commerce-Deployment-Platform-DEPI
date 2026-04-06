@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 
-import { ChatSidebar } from "@/components/chat/ChatSidebar";
+import ChatSidebar from "@/components/chat/ChatSidebar";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import {
   clearChatError,
@@ -140,10 +140,7 @@ export default function ChatPage() {
       <div className="grid h-[calc(100vh-10rem)] grid-cols-1 gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
         <div className="min-h-0 overflow-hidden rounded-2xl">
           <ChatSidebar
-            chats={chats}
-            activeChatId={activeChatId}
-            loading={loadingChats}
-            onSelect={handleSelectChat}
+            onChatSelect={handleSelectChat}
           />
         </div>
 

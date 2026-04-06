@@ -78,7 +78,14 @@ export async function trackShipment(shipmentId: string, userId: string): Promise
   if (!shipment) throw createNotFoundError("Shipment not found");
 
   if (!shipment.trackingNumber || !shipment.selectedRate) {
-    throw new Error("Tracking information not available for this shipment");
+    return {
+      status: "PENDING",
+      statusDetails: "Tracking information is not yet available. The shipment may not be paid or label not yet generated.",
+      carrier: shipment.selectedRate?.carrier || "Unknown",
+      trackingNumber: shipment.trackingNumber || "",
+      trackingUrl: shipment.trackingUrl || "",
+      events: [],
+    };
   }
 
   try {

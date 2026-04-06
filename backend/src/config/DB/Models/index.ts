@@ -5,3 +5,4 @@ import './Payment/Payment.model';
 import './Message/Message.model';
 import './Chat/Chat.model';
 import './webhook/WebhookLog.model';
+import './Notification/Notification.model';

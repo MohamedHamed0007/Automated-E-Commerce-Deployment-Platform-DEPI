@@ -18,7 +18,7 @@ export const roleMiddleware = (...allowedRoles: string[]) => {
       return;
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    if (!req.user || !allowedRoles.includes(req.user.role || '')) {
       res.status(403).json({
         success: false,
         message: 'Forbidden: Insufficient permissions',

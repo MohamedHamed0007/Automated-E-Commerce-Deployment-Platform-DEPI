@@ -5,6 +5,7 @@ import { successResponse } from "../../utils/Response/api.response.utils";
 import * as shipmentService from "../../Services/shipment/shipment.service";
 import { trackShipment } from "../../Services/tracking/tracking.services";
 import { sendNotification } from "../../Services/Notifications/notification.service";
+import { NotificationType } from "../../config/DB/Models/Notification/Notification.model";
 
 export const createShipment = asyncHandler(
   async (req: Request, res: Response) => {
@@ -15,7 +16,7 @@ export const createShipment = asyncHandler(
 
     await sendNotification({
       userId: req.user!.userId,
-      type: 'shipment_update',
+      type: NotificationType.SHIPMENT_UPDATE,
       title: 'Shipment Created',
       message: `Your shipment #${shipment._id} has been created successfully.`,
     });
@@ -62,7 +63,7 @@ export const compareRates = asyncHandler(
 
     await sendNotification({
       userId: req.user!.userId,
-      type: 'shipment_update',
+      type: NotificationType.SHIPMENT_UPDATE,
       title: 'Rates Available',
       message: `Shipping rates are ready for shipment #${req.params.id}. Choose the best rate!`,
     });
@@ -82,7 +83,7 @@ export const selectRate = asyncHandler(
 
     await sendNotification({
       userId: req.user!.userId,
-      type: 'shipment_update',
+      type: NotificationType.SHIPMENT_UPDATE,
       title: 'Rate Selected',
       message: `You have selected a shipping rate for shipment #${req.params.id}. Proceed to payment.`,
     });
@@ -98,11 +99,18 @@ export const getTracking = asyncHandler(
     
     await sendNotification({
       userId: req.user!.userId,
-      type: 'delivery_alert',
+      type: NotificationType.DELIVERY_ALERT,
       title: 'Tracking Updated',
       message: `Tracking info updated for shipment #${req.params.id}. Status: ${tracking.status ?? 'In Transit'}.`,
     });
 
     return successResponse(res, "Tracking info retrieved successfully", tracking, 200);
+  }
+);
+
+export const buyLabel = asyncHandler(
+  async (req: Request, res: Response) => {
+    const shipment = await shipmentService.createLabel(req.params.id);
+    return successResponse(res, "Label purchased successfully", shipment, 200);
   }
 );

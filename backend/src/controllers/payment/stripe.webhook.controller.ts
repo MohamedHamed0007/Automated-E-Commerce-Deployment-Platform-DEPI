@@ -32,30 +32,35 @@ export const stripeWebhookController = async (req: Request, res: Response) => {
   try {
     switch (event.type) {
       case "payment_intent.succeeded": {
+        console.log("💳 Processing payment_intent.succeeded...");
         const paymentIntent = event.data.object as any;
         const paymentId = paymentIntent.metadata?.paymentId;
 
         if (!paymentId) {
-          console.warn("Missing paymentId in metadata");
+          console.warn("⚠️ Missing paymentId in metadata");
           break;
         }
 
-        await markPaymentSucceeded(paymentId);
+        console.log("📝 Payment ID:", paymentId);
+        const updatedPayment = await markPaymentSucceeded(paymentId);
+        console.log("✅ Payment marked as succeeded:", updatedPayment);
 
         const payment = await Payment.findById(paymentId);
         if (!payment) {
-          console.warn("Payment not found:", paymentId);
+          console.warn("⚠️ Payment not found:", paymentId);
           break;
         }
 
         const shipment = await Shipment.findById(payment.shipmentId);
         if (!shipment) {
-          console.warn("Shipment not found:", payment.shipmentId);
+          console.warn("⚠️ Shipment not found:", payment.shipmentId);
           break;
         }
 
+        console.log("📦 Shipment found:", shipment._id, "status:", shipment.status);
+
         if (!shipment.selectedRate?.shippoRateId) {
-          console.warn("No shippoRateId in selectedRate");
+          console.warn("⚠️ No shippoRateId in selectedRate");
           break;
         }
 
@@ -67,9 +72,14 @@ export const stripeWebhookController = async (req: Request, res: Response) => {
 
         console.log("Attempting to buy Shippo rate:", shipment.selectedRate.shippoRateId);
 
+        console.log("🚀 Attempting to buy Shippo label...");
+        console.log("📋 Rate ID:", shipment.selectedRate.shippoRateId);
+        console.log("🔑 Shippo API Key loaded:", !!process.env.SHIPPO_API_KEY);
+        
         // 🔥 6. شراء اللابل مباشرة (معزول في Try/Catch للتعامل مع أخطاء Shippo)
         let transactionRes;
         try {
+          console.log("📤 Sending request to Shippo...");
           transactionRes = await axios.post(
             "https://api.goshippo.com/transactions/",
             {
@@ -84,6 +94,7 @@ export const stripeWebhookController = async (req: Request, res: Response) => {
               },
             }
           );
+          console.log("📥 Shippo response:", JSON.stringify(transactionRes.data, null, 2));
         } catch (shippoError: any) {
           // ❌ لو Shippo رفض العملية (مثل: Rate غير صالح أو مستخدم)
           console.error(
@@ -116,11 +127,15 @@ export const stripeWebhookController = async (req: Request, res: Response) => {
 
         await shipment.save();
 
-        console.log("✅ Shipment booked successfully with tracking data");
+        console.log("✅ Shipment booked successfully!");
+        console.log("   - trackingNumber:", shipment.trackingNumber);
+        console.log("   - labelUrl:", shipment.labelUrl);
+        console.log("   - status:", shipment.status);
         break;
       }
 
       case "payment_intent.payment_failed": {
+        console.log("💳 Payment failed event received");
         const paymentIntent = event.data.object as any;
         const paymentId = paymentIntent.metadata?.paymentId;
 
@@ -131,11 +146,12 @@ export const stripeWebhookController = async (req: Request, res: Response) => {
       }
 
       case "payment_intent.processing": {
-        console.log("Payment is processing...");
+        console.log("💳 Payment processing...");
         break;
       }
 
       default:
+        console.log("📝 Unhandled event:", event.type);
         console.log(`Unhandled event type: ${event.type}`);
     }
 

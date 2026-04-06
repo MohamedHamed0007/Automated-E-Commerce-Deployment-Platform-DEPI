@@ -20,21 +20,16 @@ function PaymentContent() {
   const { currentShipment } = useAppSelector((state) => state.shipment);
   const [stripeError, setStripeError] = useState<string | null>(null);
 
-  // Initialize Stripe and Log Debug Info
+  // Initialize Stripe
   const stripePromise = useMemo(() => {
     const rawKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
     
-    // DEBUG LOGS - Check your browser console (F12)
-    console.group("🔍 Stripe Key Debug");
-    console.log("Raw Key Value:", rawKey);
-    console.log("Type of Key:", typeof rawKey);
-    console.log("Is Key Placeholder?", rawKey === "pk_test_placeholder");
-    console.groupEnd();
-
     if (!rawKey || rawKey === "pk_test_placeholder" || rawKey.trim() === "") {
       return null;
     }
-    return loadStripe(rawKey);
+    
+    const cleanKey = rawKey.trim();
+    return loadStripe(cleanKey);
   }, []);
 
   useEffect(() => {

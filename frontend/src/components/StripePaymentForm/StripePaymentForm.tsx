@@ -41,6 +41,11 @@ export default function StripePaymentForm({ amount, onSuccess, onError }: Stripe
   const elements = useElements();
   const { shipmentId } = useParams<{ shipmentId: string }>();
   const [processing, setProcessing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const handleLoadError = (event: any) => {
+    setLoadError(event.error?.message || "Failed to load payment element");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,8 +81,13 @@ export default function StripePaymentForm({ amount, onSuccess, onError }: Stripe
       {/* Container for Stripe Card Inputs */}
       <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 min-h-[150px]">
         {/* Stripe natively handles the loading state of this element */}
-        <PaymentElement />
+        <PaymentElement onLoadError={handleLoadError} />
       </div>
+      {loadError && (
+        <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-200">
+          {loadError}
+        </div>
+      )}
       
       {/* Security Information Section */}
       <div className="flex items-start gap-3 p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-100 dark:border-green-800/50">

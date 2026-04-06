@@ -36,6 +36,7 @@ export const adminLoginService = async (body: any): Promise<string> => {
   // 5. Generate and return JWT token
   const tokenPayload = {
     userId: user._id.toString(),
+    email: user.email,
     role: user.role,
   };
 

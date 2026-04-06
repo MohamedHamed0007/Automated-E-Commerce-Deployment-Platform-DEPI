@@ -15,6 +15,10 @@ const startServer = async () => {
     res.send('Server is running 🚀');
   });
 
+  app.get('/api/v1/health', (req: Request, res: Response) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
   const httpServer = createServer(app);
 
   const io = createSocketServer(httpServer);
