@@ -23,10 +23,8 @@ RUN npm ci --omit=dev
 # Copy built files from builder
 COPY --from=builder /app/dist ./dist
 
-# Use Railway environment variables
-ENV NODE_ENV=production
+# Expose port
+EXPOSE 3000
 
-# No need to copy env folder; use Railway env vars
-
-# Run server
+# Run server ( Railway will provide env vars)
 CMD ["node", "dist/server.js"]
