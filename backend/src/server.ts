@@ -7,7 +7,7 @@ import bootstrap from "./app";
 
 const startServer = async () => {
   const app: Application = express();
-  const PORT = Number(env.PORT) || 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   await bootstrap(app);
 
