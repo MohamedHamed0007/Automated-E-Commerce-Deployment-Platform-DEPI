@@ -22,6 +22,10 @@ jobs:
           - service: admin-next
             image: shipsphere-admin
 
+    env:
+      REPOSITORY: testgithub
+      IMAGE_TAG: latest
+
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -35,11 +39,11 @@ jobs:
       - name: Build Docker image
         run: |
           docker build \
-            -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}:latest \
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/$REPOSITORY:${{ matrix.image }}-$IMAGE_TAG \
             -f ./${{ matrix.service }}/Dockerfile \
             ./${{ matrix.service }}
 
       - name: Push Docker image
         run: |
           docker push \
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.image }}:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/$REPOSITORY:${{ matrix.image }}-$IMAGE_TAG
