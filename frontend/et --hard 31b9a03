@@ -1,0 +1,29 @@
+[33m1dbcd0e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdevelop[m[33m)[m Merge Sadey/Integration
+[33m31b9a03[m Save changes before merge
+[33mc7c49c8[m Merge pull request #10 from ahmed-gomaa003/abdo/integration
+[33m5cb6302[m[33m ([m[1;31morigin/abdo/integration[m[33m)[m new tasks help, history and shipment pages
+[33m2bbf9b4[m[33m ([m[1;31morigin/dashboard-compare-ui[m[33m)[m dark mode for About page enhanced
+[33me192df1[m add new libary called recharts for dashoard to handle data visualization
+[33me7c13cc[m feat: add new page that is Compare page that show to users different or available offers to compare between them
+[33ma3cb60a[m feat:add three new components Card , Button and Badge to optimize and enhance reusability
+[33m867c361[m feat:add new component Breadcrumb to handle path inside layout
+[33m370827c[m signup-page
+[33m64bf096[m Crate branch Sadey/Integration
+[33mab1784f[m resolve merge conflicts
+[33mabd12d8[m[33m ([m[1;31morigin/feature/about[m[33m)[m Merge remote-tracking branch 'origin/develop' into feature/about
+[33mb00f41d[m update about section
+[33mb7fae6a[m Change logo name, change colors transparently
+[33m3f03592[m Resolve conflicts and merge contact page
+[33m80ca00d[m[33m ([m[1;31morigin/feature/home[m[33m)[m Save changes to Navbar before rebase
+[33m1acdb3a[m Fix/update README before rebase
+[33mabcfed3[m change Navbar Style
+[33mb032500[m I changed from context to Redux
+[33mee571e0[m[33m ([m[1;31morigin/feature/contact[m[33m)[m Add dark theme support
+[33m5afb3a6[m Implemented responsive Home Page Navbar with Dark Mode support using React, Context, Redux Toolkit, and Tailwind CSS
+[33m10d1bc9[m[33m ([m[1;31morigin/feature/login[m[33m)[m Login Page with ForgetPassword Page
+[33meeb4655[m feat:add hero section
+[33mf0fef4a[m contact page with footer contact with dark theme
+[33mf5fc968[m refactor: restructure project and add folders/files
+[33m13231c1[m Commit on develop
+[33me09f991[m Initial commit on develop
+[33m248b0f8[m[33m ([m[1;31morigin/main[m[33m)[m Initial commit
