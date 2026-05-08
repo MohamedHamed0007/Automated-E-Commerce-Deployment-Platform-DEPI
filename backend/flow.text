@@ -1,0 +1,137 @@
+          [Entry Point]
+          │
+          ├─ server.ts → creates Express app, loads env, calls bootstrap(), starts HTTP listener
+          │ └─> app.ts → registers global middleware (express.json), connects to DB
+          │ ├─> config/env/env.ts → loads & exports typed env variables (PORT, NODE_ENV, …)
+          │ └─> config/DB/connection.ts → connectDB() — Mongoose/DB connection logic
+
+          ───────────────────────────────────────────
+
+          [Routes]
+          │
+          ├─ POST /auth/register
+          │ └─> auth.controller.ts
+          │ └─> auth.service.ts
+          │ ├─> mail.service.ts
+          │ └─> User.model.ts
+          │
+          ├─ POST /auth/login
+          │ └─> auth.controller.ts
+          │ └─> auth.service.ts
+          │ ├─> tokenHelper.ts
+          │ └─> User.model.ts
+          │
+          ├─ POST /users
+          │ └─> user.controller.ts
+          │ └─> user.service.ts
+          │ └─> User.model.ts
+          │
+          ├─ GET /shipments/:id
+          │ └─> shipment.controller.ts
+          │ └─> shipment.service.ts
+          │ ├─> carrier.service.ts
+          │ └─> Shipment.model.ts
+          │
+          ├─ DELETE /shipments/:id/cancel
+          │ └─> shipment.controller.ts
+          │ └─> cancel.service.ts
+          │ └─> Shipment.model.ts / Payment.model.ts
+          │
+          ├─ POST /payments
+          │ └─> payment.controller.ts
+          │ └─> payment.service.ts
+          │ └─> Payment.model.ts
+          │
+          ├─ GET /payments/commission
+          │ └─> admin.controller.ts
+          │ └─> commission.service.ts
+          │ └─> Payment.model.ts / User.model.ts
+          │
+          ├─ POST /chat/messages
+          │ └─> chat.controller.ts
+          │ └─> chat.service.ts
+          │ └─> Chat.model.ts / Message.model.ts
+          │
+          ├─ GET /chat/:chatId
+          │ └─> chat.controller.ts
+          │ └─> chat.service.ts
+          │ └─> Chat.model.ts / Message.model.ts
+          │
+          ├─ GET /tracking/:shipmentId
+          │ └─> tracking.controller.ts
+          │ └─> tracking.service.ts
+          │ └─> Shipment.model.ts / Tracking.model.ts
+          │
+          ├─ POST /webhooks/payment
+          │ └─> webhook.controller.ts
+          │ └─> webhook.service.ts
+          │ └─> WebhookLog.model.ts
+
+          ───────────────────────────────────────────
+
+          [Middleware]
+          │
+          ├─ auth.middleware.ts → JWT verification for protected routes
+          ├─ role.middleware.ts → isAdmin / isUser checks
+          ├─ validate.middleware.ts → uses Validation/*.ts for request bodies
+          └─ error.middleware.ts → global error handler
+
+          ───────────────────────────────────────────
+
+          [Sockets]
+          │
+          ├─ auth.socket.ts → JWT verification on socket connect
+          └─ chat.socket.ts → chat.service.ts → Chat.model.ts / Message.model.ts
+
+          ───────────────────────────────────────────
+
+          [Utils]
+          │
+          ├─ apiResponse.ts → standardized success/error responses
+          ├─ asyncHandler.ts → wrap async controllers to catch errors
+          ├─ tokenHelper.ts → JWT create/verify
+          └─ dateHelper.ts → date calculations (cancel.service.ts, shipment.service.ts)
+
+          ───────────────────────────────────────────
+
+          [Validation]
+          │
+          ├─ auth.validation.ts → auth.controller.ts
+          ├─ user.validation.ts → user.controller.ts
+          ├─ shipment.validation.ts → shipment.controller.ts
+          ├─ tracking.validation.ts → tracking.controller.ts
+          └─ webhook.validation.ts
+
+          ───────────────────────────────────────────
+
+          [Config]
+          │
+          ├─ env/env.ts → typed env config (PORT, NODE_ENV, DB_URI, JWT_SECRET, …)
+          └─ DB/connection.ts → connectDB() — initializes database connection
+
+          ───────────────────────────────────────────
+
+          [Models]
+          │
+          ├─ User.model.ts → auth, user, admin, commission services
+          ├─ Shipment.model.ts → shipment, cancel, admin services
+          ├─ Payment.model.ts → payment, cancel, commission services
+          ├─ Chat.model.ts → chat service / socket
+          ├─ Message.model.ts → chat service / socket
+          ├─ Tracking.model.ts → tracking.service
+          └─ WebhookLog.model.ts → webhook.service
+
+          ───────────────────────────────────────────
+
+          [Webhooks]
+          │
+          ├─ webhook.routes.ts
+          ├─ webhook.controller.ts
+          ├─ webhook.service.ts
+          └─ WebhookLog.model.ts
+
+          ───────────────────────────────────────────
+
+          [Tests]
+          │
+          └─ *.test.ts → unit/integration tests per module
