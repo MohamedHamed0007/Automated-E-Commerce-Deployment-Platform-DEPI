@@ -1,1 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
 
+metadata:
+  name: frontend-deployment
+  namespace: shipsphere
+
+spec:
+  replicas: 3
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+
+  selector:
+    matchLabels:
+      app: frontend
+
+  template:
+    metadata:
+      labels:
+        app: frontend
+
+    spec:
+      containers:
+      - name: frontend
+
+        image: mostafahazem944/shipspherefe:latest
+
+        ports:
+        - containerPort: 3000
+
+        resources:
+          requests:
+            cpu: "200m"
+          limits:
+            cpu: "500m"
