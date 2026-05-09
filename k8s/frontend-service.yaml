@@ -1,1 +1,16 @@
+apiVersion: v1
+kind: Service
 
+metadata:
+  name: frontend-service
+  namespace: shipsphere
+
+spec:
+  type: LoadBalancer
+
+  selector:
+    app: frontend
+
+  ports:
+    - port: 80
+      targetPort: 3000
