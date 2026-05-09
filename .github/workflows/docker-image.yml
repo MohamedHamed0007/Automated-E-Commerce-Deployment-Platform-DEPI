@@ -2,7 +2,7 @@ name: Build & Push Images
 
 on:
   push:
-    branches: [ "develop" ]
+    branches: [ "mostafa-hazem" ]
 
 jobs:
   build:
@@ -28,7 +28,7 @@ jobs:
         docker build -t ${{ secrets.DOCKER_USERNAME }}/shipspherean:v${{ github.run_number }} -f admin-next/Dockerfile admin-next
         docker push ${{ secrets.DOCKER_USERNAME }}/shipspherean:v${{ github.run_number }}
 
-    # Frontend ✅
+    # Frontend
     - name: Build & Push Frontend
       run: |
         docker build -t ${{ secrets.DOCKER_USERNAME }}/shipspherefe:v${{ github.run_number }} -f frontend/Dockerfile frontend
