@@ -1,35 +1,95 @@
-name: Build & Push Images
- 
+name: Build Push & Deploy
+
 on:
   push:
     branches: [ "mostafa-hazem" ]
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
-  build:
+
+  build-deploy:
     runs-on: ubuntu-latest
 
     steps:
+
+    # -----------------------------
+    # Checkout
+    # -----------------------------
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # Login Docker Hub
+    # -----------------------------
+    # Docker Login
+    # -----------------------------
     - name: Login to Docker Hub
-      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      run: |
+        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login \
+        -u "${{ secrets.DOCKER_USERNAME }}" \
+        --password-stdin
 
+    # -----------------------------
     # Backend
+    # -----------------------------
     - name: Build & Push Backend
       run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/shipspherebe:v${{ github.run_number }} -f backend/Dockerfile backend
-        docker push ${{ secrets.DOCKER_USERNAME }}/shipspherebe:v${{ github.run_number }}
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/shipspherebe:latest -f backend/Dockerfile backend
+        docker push ${{ secrets.DOCKER_USERNAME }}/shipspherebe:latest
 
+    # -----------------------------
     # Admin
+    # -----------------------------
     - name: Build & Push Admin
       run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/shipspherean:v${{ github.run_number }} -f admin-next/Dockerfile admin-next
-        docker push ${{ secrets.DOCKER_USERNAME }}/shipspherean:v${{ github.run_number }}
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/shipspherean:latest -f admin-next/Dockerfile admin-next
+        docker push ${{ secrets.DOCKER_USERNAME }}/shipspherean:latest
 
+    # -----------------------------
     # Frontend
+    # -----------------------------
     - name: Build & Push Frontend
       run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/shipspherefe:v${{ github.run_number }} -f frontend/Dockerfile frontend
-        docker push ${{ secrets.DOCKER_USERNAME }}/shipspherefe:v${{ github.run_number }}
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/shipspherefe:latest -f frontend/Dockerfile frontend
+        docker push ${{ secrets.DOCKER_USERNAME }}/shipspherefe:latest
+
+    # -----------------------------
+    # Authenticate GCP
+    # -----------------------------
+    - name: Authenticate to GCP
+      uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+        service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+    # -----------------------------
+    # Setup GCloud
+    # -----------------------------
+    - name: Setup Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    # -----------------------------
+    # Connect to GKE
+    # -----------------------------
+    - name: Connect GKE Cluster
+      run: |
+        gcloud container clusters get-credentials shipsphere-cluster \
+        --region us-central1 \
+        --project project-824bb343-05b2-4a8e-87d
+
+    # -----------------------------
+    # Deploy Kubernetes
+    # -----------------------------
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl apply -f k8s/
+
+    # -----------------------------
+    # Rolling Restart
+    # -----------------------------
+    - name: Rolling Restart
+      run: |
+        kubectl rollout restart deployment/frontend-deployment -n shipsphere
+        kubectl rollout restart deployment/backend-deployment -n shipsphere
+        kubectl rollout restart deployment/admin-deployment -n shipsphere
