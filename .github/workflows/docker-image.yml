@@ -2,7 +2,8 @@ name: Build Push & Deploy
 
 on:
   push:
-    branches: [ "mostafa-hazem" ]
+    branches:
+      - mostafa-hazem
 
 permissions:
   contents: read
@@ -16,13 +17,13 @@ jobs:
     steps:
 
     # -----------------------------
-    # Checkout
+    # Checkout Repository
     # -----------------------------
     - name: Checkout code
       uses: actions/checkout@v4
 
     # -----------------------------
-    # Docker Login
+    # Docker Hub Login
     # -----------------------------
     - name: Login to Docker Hub
       run: |
@@ -73,30 +74,20 @@ jobs:
         service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
     # -----------------------------
-    # Setup GCloud SDK
+    # Setup Google Cloud SDK
     # -----------------------------
     - name: Setup Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
-
-    # -----------------------------
-    # Install GKE Auth Plugin
-    # -----------------------------
-    - name: Install GKE Auth Plugin
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y google-cloud-cli-gke-gcloud-auth-plugin
-
-    # -----------------------------
-    # Enable GKE Auth Plugin
-    # -----------------------------
-    - name: Enable GKE Auth Plugin
-      run: |
-        echo "USE_GKE_GCLOUD_AUTH_PLUGIN=True" >> $GITHUB_ENV
+      with:
+        install_components: 'gke-gcloud-auth-plugin'
 
     # -----------------------------
     # Connect to GKE Cluster
     # -----------------------------
-    - name: Connect GKE Cluster
+    - name: Connect to GKE Cluster
+      env:
+        USE_GKE_GCLOUD_AUTH_PLUGIN: "True"
+
       run: |
         gcloud container clusters get-credentials shipsphere-cluster \
         --region us-east1 \
@@ -107,26 +98,30 @@ jobs:
     # -----------------------------
     - name: Create Namespace
       run: |
-        kubectl create namespace shipsphere --dry-run=client -o yaml | kubectl apply -f -
+        kubectl create namespace shipsphere \
+        --dry-run=client -o yaml | kubectl apply -f -
 
     # -----------------------------
     # Deploy Kubernetes Manifests
     # -----------------------------
-    - name: Deploy to Kubernetes
+    - name: Deploy Kubernetes Manifests
+      env:
+        USE_GKE_GCLOUD_AUTH_PLUGIN: "True"
+
       run: |
         kubectl apply -f k8s/
 
     # -----------------------------
     # Rolling Restart
     # -----------------------------
-    - name: Rolling Restart
+    - name: Rolling Restart Deployments
       run: |
         kubectl rollout restart deployment/frontend-deployment -n shipsphere
         kubectl rollout restart deployment/backend-deployment -n shipsphere
         kubectl rollout restart deployment/admin-deployment -n shipsphere
 
     # -----------------------------
-    # Verify Deployments
+    # Verify Kubernetes Resources
     # -----------------------------
     - name: Verify Deployments
       run: |
