@@ -27,7 +27,7 @@ spec:
       containers:
       - name: backend
 
-        image: mostafahazem944/shipspherefe:latest
+        image: mostafahazem944/shipspherebe:latest
 
         ports:
         - containerPort: 3000

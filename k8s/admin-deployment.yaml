@@ -27,7 +27,7 @@ spec:
       containers:
       - name: admin
 
-        image: mostafahazem944/shipspherefe:latest
+        image: mostafahazem944/shipspherean:latest
 
         ports:
         - containerPort: 3000
