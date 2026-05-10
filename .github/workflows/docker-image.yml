@@ -73,7 +73,7 @@ jobs:
     # Connect to GKE
     # -----------------------------
     - name: Connect GKE Cluster
-      run: |
+      run: | 
         gcloud container clusters get-credentials shipsphere-cluster \
         --region us-east1 \
         --project project-824bb343-05b2-4a8e-87d
