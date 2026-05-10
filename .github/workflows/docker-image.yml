@@ -31,31 +31,40 @@ jobs:
         --password-stdin
 
     # -----------------------------
-    # Backend
+    # Build & Push Backend
     # -----------------------------
     - name: Build & Push Backend
       run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/shipspherebe:latest -f backend/Dockerfile backend
+        docker build \
+        -t ${{ secrets.DOCKER_USERNAME }}/shipspherebe:latest \
+        -f backend/Dockerfile backend
+
         docker push ${{ secrets.DOCKER_USERNAME }}/shipspherebe:latest
 
     # -----------------------------
-    # Admin
+    # Build & Push Admin
     # -----------------------------
     - name: Build & Push Admin
       run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/shipspherean:latest -f admin-next/Dockerfile admin-next
+        docker build \
+        -t ${{ secrets.DOCKER_USERNAME }}/shipspherean:latest \
+        -f admin-next/Dockerfile admin-next
+
         docker push ${{ secrets.DOCKER_USERNAME }}/shipspherean:latest
 
     # -----------------------------
-    # Frontend
+    # Build & Push Frontend
     # -----------------------------
     - name: Build & Push Frontend
       run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/shipspherefe:latest -f frontend/Dockerfile frontend
+        docker build \
+        -t ${{ secrets.DOCKER_USERNAME }}/shipspherefe:latest \
+        -f frontend/Dockerfile frontend
+
         docker push ${{ secrets.DOCKER_USERNAME }}/shipspherefe:latest
 
     # -----------------------------
-    # Authenticate GCP
+    # Authenticate to GCP
     # -----------------------------
     - name: Authenticate to GCP
       uses: google-github-actions/auth@v2
@@ -64,22 +73,44 @@ jobs:
         service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
     # -----------------------------
-    # Setup GCloud
+    # Setup GCloud SDK
     # -----------------------------
     - name: Setup Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
 
     # -----------------------------
-    # Connect to GKE
+    # Install GKE Auth Plugin
+    # -----------------------------
+    - name: Install GKE Auth Plugin
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y google-cloud-cli-gke-gcloud-auth-plugin
+
+    # -----------------------------
+    # Enable GKE Auth Plugin
+    # -----------------------------
+    - name: Enable GKE Auth Plugin
+      run: |
+        echo "USE_GKE_GCLOUD_AUTH_PLUGIN=True" >> $GITHUB_ENV
+
+    # -----------------------------
+    # Connect to GKE Cluster
     # -----------------------------
     - name: Connect GKE Cluster
-      run: | 
+      run: |
         gcloud container clusters get-credentials shipsphere-cluster \
         --region us-east1 \
         --project project-824bb343-05b2-4a8e-87d
 
     # -----------------------------
-    # Deploy Kubernetes
+    # Create Namespace if Not Exists
+    # -----------------------------
+    - name: Create Namespace
+      run: |
+        kubectl create namespace shipsphere --dry-run=client -o yaml | kubectl apply -f -
+
+    # -----------------------------
+    # Deploy Kubernetes Manifests
     # -----------------------------
     - name: Deploy to Kubernetes
       run: |
@@ -93,3 +124,12 @@ jobs:
         kubectl rollout restart deployment/frontend-deployment -n shipsphere
         kubectl rollout restart deployment/backend-deployment -n shipsphere
         kubectl rollout restart deployment/admin-deployment -n shipsphere
+
+    # -----------------------------
+    # Verify Deployments
+    # -----------------------------
+    - name: Verify Deployments
+      run: |
+        kubectl get pods -n shipsphere
+        kubectl get svc -n shipsphere
+        kubectl get hpa -n shipsphere
