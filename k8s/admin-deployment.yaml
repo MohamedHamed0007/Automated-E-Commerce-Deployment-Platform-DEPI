@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: admin-deployment
+  namespace: shipsphere
+
+spec:
+  replicas: 1
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+
+  selector:
+    matchLabels:
+      app: admin
+
+  template:
+    metadata:
+      labels:
+        app: admin
+
+    spec:
+      containers:
+      - name: admin
+
+        image: mostafahazem944/shipspherean:latest
+
+        ports:
+        - containerPort: 3000
+
+        resources:
+          requests:
+            cpu: "200m"
+          limits:
+            cpu: "500m"

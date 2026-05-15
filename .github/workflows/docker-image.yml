@@ -1,35 +1,148 @@
-name: Build & Push Images
- 
+name: Build Push & Deploy
+
 on:
   push:
-    branches: [ "mostafa-hazem" ]
+    branches:
+      - mostafa-hazem
+      - main
+
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
-  build:
+
+  build-deploy:
     runs-on: ubuntu-latest
 
     steps:
+
+    # -----------------------------
+    # Checkout Repository
+    # -----------------------------
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # Login Docker Hub
+    # -----------------------------
+    # Docker Hub Login
+    # -----------------------------
     - name: Login to Docker Hub
-      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      run: |
+        echo "${{ secrets.DOCKER_PASSWORD }}" | docker login \
+        -u "${{ secrets.DOCKER_USERNAME }}" \
+        --password-stdin
 
-    # Backend
+    # -----------------------------
+    # Build & Push Backend
+    # -----------------------------
     - name: Build & Push Backend
       run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/shipspherebe:v${{ github.run_number }} -f backend/Dockerfile backend
+        docker build \
+        -t ${{ secrets.DOCKER_USERNAME }}/shipspherebe:v${{ github.run_number }} \
+        -f backend/Dockerfile backend
+
         docker push ${{ secrets.DOCKER_USERNAME }}/shipspherebe:v${{ github.run_number }}
 
-    # Admin
+    # -----------------------------
+    # Build & Push Admin
+    # -----------------------------
     - name: Build & Push Admin
       run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/shipspherean:v${{ github.run_number }} -f admin-next/Dockerfile admin-next
+        docker build \
+        -t ${{ secrets.DOCKER_USERNAME }}/shipspherean:v${{ github.run_number }} \
+        -f admin-next/Dockerfile admin-next
+
         docker push ${{ secrets.DOCKER_USERNAME }}/shipspherean:v${{ github.run_number }}
 
-    # Frontend ✅
+    # -----------------------------
+    # Build & Push Frontend
+    # -----------------------------
     - name: Build & Push Frontend
       run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/shipspherefe:v${{ github.run_number }} -f frontend/Dockerfile frontend
+        docker build \
+        -t ${{ secrets.DOCKER_USERNAME }}/shipspherefe:v${{ github.run_number }} \
+        -f frontend/Dockerfile frontend
+
         docker push ${{ secrets.DOCKER_USERNAME }}/shipspherefe:v${{ github.run_number }}
+
+    # -----------------------------
+    # Update Kubernetes Images
+    # -----------------------------
+    - name: Update Kubernetes Images
+      run: |
+        sed -i "s|mostafahazem944/shipspherebe:.*|mostafahazem944/shipspherebe:v${{ github.run_number }}|g" k8s/backend-deployment.yaml
+
+        sed -i "s|mostafahazem944/shipspherean:.*|mostafahazem944/shipspherean:v${{ github.run_number }}|g" k8s/admin-deployment.yaml
+
+        sed -i "s|mostafahazem944/shipspherefe:.*|mostafahazem944/shipspherefe:v${{ github.run_number }}|g" k8s/frontend-deployment.yaml
+
+    # -----------------------------
+    # Authenticate to GCP
+    # -----------------------------
+    - name: Authenticate to GCP
+      uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+        service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+    # -----------------------------
+    # Setup Google Cloud SDK
+    # -----------------------------
+    - name: Setup Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        install_components: 'gke-gcloud-auth-plugin'
+
+    # -----------------------------
+    # Connect to GKE Cluster
+    # -----------------------------
+    - name: Connect to GKE Cluster
+      env:
+        USE_GKE_GCLOUD_AUTH_PLUGIN: "True"
+
+      run: |
+        gcloud container clusters get-credentials shipsphere-cluster \
+        --region us-east1 \
+        --project project-824bb343-05b2-4a8e-87d
+
+    # -----------------------------
+    # Create Namespace
+    # -----------------------------
+    - name: Create Namespace
+      run: |
+        kubectl create namespace shipsphere \
+        --dry-run=client -o yaml | kubectl apply -f -
+
+    # -----------------------------
+    # Create Backend Secret
+    # -----------------------------
+    - name: Create Backend Secret
+      run: |
+        echo "${{ secrets.BACKEND_ENV }}" > backend.env
+
+        kubectl delete secret backend-secret \
+        -n shipsphere \
+        --ignore-not-found
+
+        kubectl create secret generic backend-secret \
+        --from-env-file=backend.env \
+        -n shipsphere
+
+    # -----------------------------
+    # Deploy Kubernetes Manifests
+    # -----------------------------
+    - name: Deploy Kubernetes Manifests
+      env:
+        USE_GKE_GCLOUD_AUTH_PLUGIN: "True"
+
+      run: |
+        kubectl apply -f k8s/
+
+    # -----------------------------
+    # Verify Kubernetes Resources
+    # -----------------------------
+    - name: Verify Deployments
+      run: |
+        kubectl get pods -n shipsphere
+        kubectl get svc -n shipsphere
+        kubectl get hpa -n shipsphere
