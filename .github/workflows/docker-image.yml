@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - mostafa-hazem
+      - main
 
 permissions:
   contents: read
