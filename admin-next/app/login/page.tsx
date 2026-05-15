@@ -101,7 +101,7 @@ export default function LoginPage() {
         padding: 48, background: "#0a0a0f",
       }}>
         <div style={{ width: "100%", maxWidth: 380 }}>
-          <h2 style={{ color: "#f8fafc", fontSize: 26, fontWeight: 700, letterSpacing: "-0.02em", margin: "0 0 6px" }}>
+          <h2 style={{ color: "#e23111", fontSize: 26, fontWeight: 700, letterSpacing: "-0.02em", margin: "0 0 6px" }}>
             Welcome back
           </h2>
           <p style={{ color: "#475569", fontSize: 14, margin: "0 0 36px" }}>Sign in to your admin account</p>
