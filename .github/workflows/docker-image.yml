@@ -94,12 +94,27 @@ jobs:
         --project project-824bb343-05b2-4a8e-87d
 
     # -----------------------------
-    # Create Namespace if Not Exists
+    # Create Namespace
     # -----------------------------
     - name: Create Namespace
       run: |
         kubectl create namespace shipsphere \
         --dry-run=client -o yaml | kubectl apply -f -
+
+    # -----------------------------
+    # Create Backend Secret
+    # -----------------------------
+    - name: Create Backend Secret
+      run: |
+        echo "${{ secrets.BACKEND_ENV }}" > backend.env
+
+        kubectl delete secret backend-secret \
+        -n shipsphere \
+        --ignore-not-found
+
+        kubectl create secret generic backend-secret \
+        --from-env-file=backend.env \
+        -n shipsphere
 
     # -----------------------------
     # Deploy Kubernetes Manifests
