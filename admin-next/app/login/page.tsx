@@ -44,7 +44,7 @@ export default function LoginPage() {
         <div style={{
           position: "absolute", top: "20%", left: "10%",
           width: 320, height: 320, borderRadius: "50%",
-          background: "radial-gradient(circle, hsla(0, 0%, 0%, 0.15) 0%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%)",
           filter: "blur(40px)",
         }} />
 
@@ -102,7 +102,7 @@ export default function LoginPage() {
       }}>
         <div style={{ width: "100%", maxWidth: 380 }}>
           <h2 style={{ color: "#f8fafc", fontSize: 26, fontWeight: 700, letterSpacing: "-0.02em", margin: "0 0 6px" }}>
-            Welcome back
+            Welcome Depi
           </h2>
           <p style={{ color: "#475569", fontSize: 14, margin: "0 0 36px" }}>Sign in to your admin account</p>
 
