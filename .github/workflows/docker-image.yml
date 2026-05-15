@@ -37,10 +37,10 @@ jobs:
     - name: Build & Push Backend
       run: |
         docker build \
-        -t ${{ secrets.DOCKER_USERNAME }}/shipspherebe:latest \
+        -t ${{ secrets.DOCKER_USERNAME }}/shipspherebe:v${{ github.run_number }} \
         -f backend/Dockerfile backend
 
-        docker push ${{ secrets.DOCKER_USERNAME }}/shipspherebe:latest
+        docker push ${{ secrets.DOCKER_USERNAME }}/shipspherebe:v${{ github.run_number }}
 
     # -----------------------------
     # Build & Push Admin
@@ -48,10 +48,10 @@ jobs:
     - name: Build & Push Admin
       run: |
         docker build \
-        -t ${{ secrets.DOCKER_USERNAME }}/shipspherean:latest \
+        -t ${{ secrets.DOCKER_USERNAME }}/shipspherean:v${{ github.run_number }} \
         -f admin-next/Dockerfile admin-next
 
-        docker push ${{ secrets.DOCKER_USERNAME }}/shipspherean:latest
+        docker push ${{ secrets.DOCKER_USERNAME }}/shipspherean:v${{ github.run_number }}
 
     # -----------------------------
     # Build & Push Frontend
@@ -59,10 +59,21 @@ jobs:
     - name: Build & Push Frontend
       run: |
         docker build \
-        -t ${{ secrets.DOCKER_USERNAME }}/shipspherefe:latest \
+        -t ${{ secrets.DOCKER_USERNAME }}/shipspherefe:v${{ github.run_number }} \
         -f frontend/Dockerfile frontend
 
-        docker push ${{ secrets.DOCKER_USERNAME }}/shipspherefe:latest
+        docker push ${{ secrets.DOCKER_USERNAME }}/shipspherefe:v${{ github.run_number }}
+
+    # -----------------------------
+    # Update Kubernetes Images
+    # -----------------------------
+    - name: Update Kubernetes Images
+      run: |
+        sed -i "s|mostafahazem944/shipspherebe:.*|mostafahazem944/shipspherebe:v${{ github.run_number }}|g" k8s/backend-deployment.yaml
+
+        sed -i "s|mostafahazem944/shipspherean:.*|mostafahazem944/shipspherean:v${{ github.run_number }}|g" k8s/admin-deployment.yaml
+
+        sed -i "s|mostafahazem944/shipspherefe:.*|mostafahazem944/shipspherefe:v${{ github.run_number }}|g" k8s/frontend-deployment.yaml
 
     # -----------------------------
     # Authenticate to GCP
@@ -125,15 +136,6 @@ jobs:
 
       run: |
         kubectl apply -f k8s/
-
-    # -----------------------------
-    # Rolling Restart
-    # -----------------------------
-    - name: Rolling Restart Deployments
-      run: |
-        kubectl rollout restart deployment/frontend-deployment -n shipsphere
-        kubectl rollout restart deployment/backend-deployment -n shipsphere
-        kubectl rollout restart deployment/admin-deployment -n shipsphere
 
     # -----------------------------
     # Verify Kubernetes Resources
