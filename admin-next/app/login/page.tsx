@@ -1,24 +1,33 @@
 "use client";
-import express from "express";
+
 import client from "prom-client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { loginUser, clearError } from "@/store/authSlice";
 
-const app = express();
 
+
+
+
+client.collectDefaultMetrics();
+
+export async function GET() {
+  const metrics = await client.register.metrics();
+
+  return new Response(metrics, {
+    headers: {
+      "Content-Type": client.register.contentType,
+    },
+  });
+}
 export default function LoginPage() {
   const router   = useRouter();
   const dispatch = useAppDispatch();
   const { loading, error } = useAppSelector((s) => s.auth);
   const collectDefaultMetrics = client.collectDefaultMetrics;
-  collectDefaultMetrics({ timeout: 5000 });
+ 
 
-  app.get("/metrics", async (req, res) => {
-    res.set("Content-Type", client.register.contentType);
-    res.end(await client.register.metrics());
-  });
 
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
