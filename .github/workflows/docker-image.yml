@@ -143,8 +143,11 @@ jobs:
     # -----------------------------
     - name: Deploy Prometheus
       run: |
-        kubectl apply -f monitoring/   
+        kubectl apply -f monitoring/  
 
+    - name: Restart Prometheus
+      run: |
+        kubectl rollout restart deployment prometheus -n shipsphere
     # -----------------------------
     # Verify Kubernetes Resources
     # -----------------------------
