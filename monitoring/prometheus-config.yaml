@@ -14,8 +14,11 @@ data:
 
       - job_name: 'admin-next'
 
-        kubernetes_sd_configs:
-          - role: pod
+      metrics_path: /api/v1/metrics
+
+      static_configs:
+        - targets:
+            - 'admin-service:80'
 
         relabel_configs:
 
