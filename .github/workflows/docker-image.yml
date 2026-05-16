@@ -138,6 +138,13 @@ jobs:
       run: |
         kubectl apply -f k8s/
 
+      # -----------------------------
+    # Deploy Prometheus
+    # -----------------------------
+    - name: Deploy Prometheus
+      run: |
+        kubectl apply -f monitoring/   
+
     # -----------------------------
     # Verify Kubernetes Resources
     # -----------------------------
